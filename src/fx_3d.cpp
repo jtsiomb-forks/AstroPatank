@@ -47,7 +47,7 @@ static void script3D(Mesh *ms, int t)
 	ms->pos.y = 0;
 	ms->pos.z = 4096;
 
-	if (runAndStop < 288) {
+	if (runAndStop < 96) {
 		rx += 6;
 		ry += 4;
 		rz -= 8;

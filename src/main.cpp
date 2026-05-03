@@ -36,11 +36,14 @@ static void interpretArgument(char *arg)
 
 static void initSystem()
 {
-	startMusPlayTest();
-	delay(500);
+	#ifdef SOUND_ON
+		//initSound();
+		startMusPlayTest();
+		delay(500);
+	#endif
+
 	initTimer();
 	initKeyboard();
-	//initSound();
 
 	initVideoModeInfo();
 
@@ -84,9 +87,10 @@ int main(int argc, char **argv)
 	deinitTimer();
 	deinitKeyboard();
 
-	stopMusPlayTest();
-
-	//deinitSound();
+	#ifdef SOUND_ON
+		stopMusPlayTest();
+		//deinitSound();
+	#endif
 
 	setTextMode();
 

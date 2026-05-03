@@ -16,9 +16,6 @@ static int nFrames = 0;
 
 #define TIMER_INTERRUPT 0x08
 
-// hack for player
-#define OOF 1 //2.4
-
 
 void timerClearInterrupt()
 {
@@ -73,8 +70,7 @@ static void timerInterruptStart()
 	// The clock we're dealing with here runs at 1.193182mhz, so we
 	// just divide 1.193182 by the number of triggers we want per
 	// second to get our divisor.
-	//uint32 c = 1193181 / (uint32)1000;
-	uint32 c = 1193181 / (uint32)(1000 * OOF);
+	uint32 c = 1193181 / (uint32)1000;
 
 	// Swap out interrupt handlers.
 	oldDosTimerInterrupt = _dos_getvect(TIMER_INTERRUPT);
@@ -105,7 +101,7 @@ static void timerInterruptStart()
 
 	timerInterruptInit = true;
 }
-
+//132,333
 static void timerInterruptEnd()
 {
 	if (!timerInterruptInit) return;
@@ -131,16 +127,18 @@ static void timerInterruptEnd()
 
 uint32 getTime()
 {
-	//return (uint32)(timeValue / OOF);
-	
-	return getMusTicks();	// as I connected MUSplay and it takes away the timer interrupt (and alternatives like chaining it failed or I did it badly), I return this instead.
+	#ifndef SOUND_ON
+		return (uint32)timeValue;
+	#else
+		return getMusTicks();	// as I connected MUSplay and it takes away the timer interrupt (and alternatives like chaining it failed or I did it badly), I return this instead.
+	#endif
 }
 
 void drawFps(Video *video)
 {
 	uint32 dt = getTime() - startingFpsTime;
 	static int fps = 0;
-	const int secsTime = 2000;
+	const int secsTime = 1000;
 
 	nFrames++;
 	if (dt >= secsTime)
@@ -154,11 +152,14 @@ void drawFps(Video *video)
 
 void initTimer()
 {
-	//timerInterruptStart();
-	// Because the MUS player captures the timer interrupt, I comment this out and will try to ask itself to give me ticks
+	#ifndef SOUND_ON
+		timerInterruptStart();	// Because the MUS player captures the timer interrupt, I won't call this if SOUND is enabled
+	#endif
 }
 
 void deinitTimer()
 {
-	//timerInterruptEnd();
+	#ifndef SOUND_ON
+		timerInterruptEnd();
+	#endif
 }
