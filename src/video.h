@@ -11,6 +11,8 @@
 
 enum {	VMODE_TEXT,
 		VMODE_320x200_8BPP,
+		VMODE_Y_320x200_8BPP,
+		VMODE_X_320x240_8BPP,
 		VMODE_640x400_8BPP,
 		VMODE_640x480_8BPP,
 		VMODE_800x600_8BPP,
@@ -22,20 +24,21 @@ enum {	VMODE_TEXT,
 typedef struct Video
 {
 	Video(){};
-	Video(uint16 m, uint16 w, uint16 h, uint8 b, bool vs, uint8 *v) : 
-		mode(m), width(w), height(h), bpp(b), vesa(vs), vram(v), buffer(0) {}
+	Video(uint16 m, uint16 w, uint16 h, uint8 b, bool uchnd, bool vs, uint8 *v) : 
+		mode(m), width(w), height(h), bpp(b), unchained(uchnd), vesa(vs), vram(v), buffer(0) {}
 
 	uint16 mode;
 	uint16 width;
 	uint16 height;
 	uint8 bpp;
+	bool unchained;
 	bool vesa;
 	uint8 *vram;
 	uint8 *buffer;
 } Video;
 
 void initVideoModeInfo();
-Video *setVideoMode(uint16 width, uint16 height, uint8 bpp, bool needsBuffer = false);
+Video *setVideoMode(uint16 width, uint16 height, uint8 bpp, bool needsBuffer = false, bool unchained = false);
 void setTextMode();
 
 void waitForVsync();
@@ -46,5 +49,7 @@ uint8 *getRenderBuffer(Video *vm);
 void setPalFromTab(uint8 colstart, uint8 *paltab, uint16 colnum);
 void setSingleColorPal(uint8 color, uint8 r, uint8 g, uint8 b);
 void setGradPal(int c0, int c1, int r0, int g0, int b0, int r1, int g1, int b1);
+
+void setPlaneMask(uint8 mask);
 
 #endif

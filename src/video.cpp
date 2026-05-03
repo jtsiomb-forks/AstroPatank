@@ -1,6 +1,8 @@
 #include "video.h"
 
 #include <string.h>
+#include <conio.h>
+#include <dos.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -13,18 +15,19 @@ static uint8 *TXTptr = (uint8*)0xB8000;
 
 static Video vmodes[VMODES_NUM];
 
-
 void initVideoModeInfo()
 {
-	vmodes[VMODE_TEXT] = Video(0x0003, 80, 50, 4, false, TXTptr);
-	vmodes[VMODE_320x200_8BPP] = Video(0x0013, 320, 200, 8, false, VGAptr);
+	vmodes[VMODE_TEXT] = Video(0x0003, 80, 50, 4, false, false, TXTptr);
+	vmodes[VMODE_320x200_8BPP] = Video(0x0013, 320, 200, 8, false, false, VGAptr);
+	vmodes[VMODE_Y_320x200_8BPP] = Video(0x0013, 320, 200, 8, true, false, VGAptr);
+	vmodes[VMODE_X_320x240_8BPP] = Video(0x0013, 320, 240, 8, true, false, VGAptr);
 
-	vmodes[VMODE_640x400_8BPP] = Video(0x0100, 640, 400, 8, true, VGAptr);
-	vmodes[VMODE_640x480_8BPP] = Video(0x0101, 640, 480, 8, true, VGAptr);
-	vmodes[VMODE_800x600_8BPP] = Video(0x0103, 800, 600, 8, true, VGAptr);
-	vmodes[VMODE_1024x768_8BPP] = Video(0x0105, 1024, 768, 8, true, VGAptr);
-	vmodes[VMODE_1280x1024_8BPP] = Video(0x0107, 1280, 1024, 8, true, VGAptr);
-	vmodes[VMODE_320x200_16BPP] = Video(0x010e, 320, 200, 16, true, VGAptr);
+	vmodes[VMODE_640x400_8BPP] = Video(0x0100, 640, 400, 8, false, true, VGAptr);
+	vmodes[VMODE_640x480_8BPP] = Video(0x0101, 640, 480, 8, false, true, VGAptr);
+	vmodes[VMODE_800x600_8BPP] = Video(0x0103, 800, 600, 8, false, true, VGAptr);
+	vmodes[VMODE_1024x768_8BPP] = Video(0x0105, 1024, 768, 8, false, true, VGAptr);
+	vmodes[VMODE_1280x1024_8BPP] = Video(0x0107, 1280, 1024, 8, false, true, VGAptr);
+	vmodes[VMODE_320x200_16BPP] = Video(0x010e, 320, 200, 16, false, true, VGAptr);
 }
 
 void setMode(uint16 mode)
@@ -51,25 +54,92 @@ void setTextMode()
 	setMode(vmodes[VMODE_TEXT].mode);
 }
 
-Video *setVideoMode(uint16 width, uint16 height, uint8 bpp, bool needsBuffer)
+static void setUnchainedMode(int height)
+{
+	uint8 a,b,c,d,e,f,g,h;
+
+	switch(height) {
+		case 200:
+			a = 0x63;
+			b = 0xBF;
+			c = 0x1F;
+			d = 0x9C;
+			e = 0x8E;
+			f = 0x8F;
+			g = 0x96;
+			h = 0xB9;
+		break;
+
+		case 240:
+			a = 0xE3;
+			b = 0x0D;
+			c = 0x3E;
+			d = 0xEA;
+			e = 0xAC;
+			f = 0xDF;
+			g = 0xE7;
+			h = 0x06;
+		break;
+
+		default:
+			printf("Unchained mode with screen height %d not found\n", height);
+			return;
+	}
+
+	outp(0x3C4,0x04); outp(0x3C5,0x06);
+	outp(0x3C4,0x00); outp(0x3C5,0x01); outp(0x3C2,a);
+	outp(0x3C4,0x00); outp(0x3C5,0x03); outp(0x3D4,0x11); outp(0x3D5, inp(0x3D5) & 0x7F);
+
+	outp(0x3D4,0x06); outp(0x3D5,b);
+    outp(0x3D4,0x07); outp(0x3D5,c);
+	outp(0x3D4,0x09); outp(0x3D5,0x41);
+	outp(0x3D4,0x10); outp(0x3D5,d);
+    outp(0x3D4,0x11); outp(0x3D5,e);
+	outp(0x3D4,0x12); outp(0x3D5,f);
+	outp(0x3D4,0x14); outp(0x3D5,0x00);
+    outp(0x3D4,0x15); outp(0x3D5,g);
+	outp(0x3D4,0x16); outp(0x3D5,h);
+	outp(0x3D4,0x17); outp(0x3D5,0xE3);
+}
+
+static void setScaleY(int linesRepeat)
+{
+	outp(0x3D4,0x09);
+	outp(0x3D5,0x40 | linesRepeat);
+}
+
+
+Video *setVideoMode(uint16 width, uint16 height, uint8 bpp, bool needsBuffer, bool unchained)
 {
 	Video *vm;
 	for (uint8 i=0; i<VMODES_NUM; ++i)
 	{
 		vm = &vmodes[i];
-		if (vm->width==width && vm->height==height && vm->bpp==bpp) {
+		if (vm->width==width && vm->height==height && vm->bpp==bpp && vm->unchained==unchained) {
 			if (needsBuffer) {
 				if (vm->buffer!=0) free(vm->buffer);
 				vm->buffer = (uint8*)malloc(((width * height * bpp) >> 3) * sizeof(uint8));
 			}
-			if (vm->vesa)
+			if (vm->vesa) {
 				setVesaMode(vm->mode);
-			else
+			} else {
 				setMode(vm->mode);
+			}
+			if (unchained) {
+				setUnchainedMode(height);
+				//setScaleY((400 / height) - 1);	// This might be if we wanted to do a scaled up 100 lines height or 50 after, but in regular ModeX or ModeY we already set things.
+			}
 			return vm;
 		}
 	}
 	return 0;
+}
+
+
+void setPlaneMask(uint8 mask)
+{
+	outp(0x3C4,0x02);
+	outp(0x3C5,mask);
 }
 
 void setSvgaWindow(uint16 window)

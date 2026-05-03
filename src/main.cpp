@@ -37,7 +37,7 @@ static void interpretArgument(char *arg)
 static void initSystem()
 {
 	startMusPlayTest();
-	delay(1000);
+	delay(500);
 	initTimer();
 	initKeyboard();
 	//initSound();
