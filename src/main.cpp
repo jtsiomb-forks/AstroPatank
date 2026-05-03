@@ -44,8 +44,12 @@ static void initSystem()
 
 	initVideoModeInfo();
 
-	//video = setVideoMode(SCR_W, SCR_H, SCR_BPP, true);
-	video = setVideoMode(SCR_W, SCR_H, SCR_BPP, false, true);
+	#ifndef SCR_UNCHAINED
+		video = setVideoMode(SCR_W, SCR_H, SCR_BPP, true);
+	#else
+		video = setVideoMode(SCR_W, SCR_H, SCR_BPP, false, true);
+	#endif
+
 	if (video==0) {
 		printf("Video Mode not found\n");
 		return;
@@ -73,9 +77,8 @@ int main(int argc, char **argv)
 
 	while(!buttonsHeld.escape) {
 		demoRun(&screen, getTime());
-		updateFrame(video, vsync);
-
 		drawFps(video);
+		updateFrame(video, vsync);
 	}
 
 	deinitTimer();

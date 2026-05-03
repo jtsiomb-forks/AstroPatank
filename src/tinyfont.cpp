@@ -63,16 +63,20 @@ static void drawFont16(int posX, int posY, uint8 decimal, Video *video)
 
 static void drawFont8(int posX, int posY, uint8 decimal, Video *video)
 {
-	int x, y;
-	const int width = video->width;
 	uint8 *fontData = &miniDecimalFonts[decimal * TINY_FONT_WIDTH * TINY_FONT_HEIGHT];
-	uint8 *dst = (uint8*)video->vram + posY * width + posX;
 
-	for (y = 0; y<TINY_FONT_HEIGHT; y++) {
-		for (x = 0; x<TINY_FONT_WIDTH; ++x) {
+	int scrWidth = video->width;
+	if (video->unchained) {
+		scrWidth >>= 2;
+	}
+
+	uint8 *dst = (uint8*)video->vram + posY * scrWidth + posX;
+
+	for (int y = 0; y<TINY_FONT_HEIGHT; y++) {
+		for (int x = 0; x<TINY_FONT_WIDTH; ++x) {
 			*(dst+x) = *fontData++;
 		}
-		dst += width;
+		dst += scrWidth;
 	}
 }
 
@@ -82,12 +86,19 @@ void drawNumber(int posX, int posY, int number, Video *video)
 	int i = 0;
 	sprintf(buffer, "%d", number);
 
+	int scrWidth = video->width;
+	int lineLength = 4;
+	if (video->unchained) {
+		scrWidth >>= 2;
+		lineLength >>= 2;
+		posX >>= 2;
+	}
+	uint8 *dst = (uint8*)video->vram + posY * scrWidth + posX;
+
 	// Clear area (for VGA only fps when not erasing full framebuffer)
-	const int width = video->width;
-	uint8 *dst = (uint8*)video->vram + posY * width + posX;
 	for (int y=0; y<5; ++y) {
-		memset(dst, 0, 4*5);	// just 4 chars max for FPS
-		dst += width;
+		memset(dst, 0, lineLength*5);	// just 4 chars max for FPS
+		dst += scrWidth;
 	}
 
 	while(i < 10 && buffer[i] != 0) {

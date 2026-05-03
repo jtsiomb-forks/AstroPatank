@@ -75,6 +75,6 @@ void demoRun(Screen *screen, int t)
 	//soundRun();
 
 #ifdef SHOW_PALETTE
-	drawPalette((uint8*)screen->data + 100*320);
+	drawPalette((uint8*)screen->data);
 #endif
 }
