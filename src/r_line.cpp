@@ -110,9 +110,9 @@ void drawLine(ScreenPoint *p0, ScreenPoint *p1, uint8 color, uint8 *vram)
 {
 	uint8 *dst;
 
-    const int x0 = p0->x;
+    const int x0 = p0->x >> UNCHAINED_BITS;
+    const int x1 = p1->x >> UNCHAINED_BITS;
     const int y0 = p0->y;
-    const int x1 = p1->x;
     const int y1 = p1->y;
 
     const int dx = x1 - x0;
@@ -257,19 +257,21 @@ static inline void drawAntialiasedLineSlopeY(int i0, int i1, int p0, int d, uint
 
 void drawLineAntialiased(ScreenPoint *p0, ScreenPoint *p1, uint8 color4, uint8 *vram)
 {
-    int x0 = p0->x;
-    int y0 = p0->y;
-    int x1 = p1->x;
-    int y1 = p1->y;
+    const int x0 = p0->x >> UNCHAINED_BITS;
+    const int x1 = p1->x >> UNCHAINED_BITS;
+    const int y0 = p0->y;
+    const int y1 = p1->y;
 
-	const int dx = x1 - x0;
-	const int dy = y1 - y0;
+	int dx = x1 - x0;
+	int dy = y1 - y0;
 
     if (dx == 0 && dy == 0) return;
 
 	int d = 0;
 	if (abs(dy) < abs(dx)) {
-		if (dx != 0) d = (dy << SCR_BITS) / dx;
+		if (dx != 0) {
+			d = (dy << SCR_BITS) / dx;
+		}
 
 		if (x0 < x1) {
 			drawAntialiasedLineSlopeX(x0, x1, y0, d, color4, vram);
@@ -277,7 +279,9 @@ void drawLineAntialiased(ScreenPoint *p0, ScreenPoint *p1, uint8 color4, uint8 *
 			drawAntialiasedLineSlopeX(x1, x0, y1, d, color4, vram);
 		}
 	} else {
-		if (dy != 0) d = (dx << SCR_BITS) / dy;
+		if (dy != 0) {
+			d = (dx << SCR_BITS) / dy;
+		}
 
 		if (y0 < y1) {
 			drawAntialiasedLineSlopeY(y0, y1, x0, d, color4, vram);

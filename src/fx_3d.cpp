@@ -13,6 +13,7 @@
 #include "input.h"
 #include "vector.h"
 #include "engine.h"
+#include "render.h"
 #include "gfxtools.h"
 #include "mesh.h"
 
@@ -121,7 +122,8 @@ static void updateScene3D(Screen *screen, int t)
 
 static void clearScreen(Screen *screen)
 {
-	memset(screen->data, 0, (screen->width * screen->height * screen->bpp) >> 3);
+	const int screenSize = (screen->width * screen->height * screen->bpp) >> (3 + UNCHAINED_BITS);
+	memset(screen->data, 0, screenSize);
 }
 
 void fx3dInit(bool onlySetup)

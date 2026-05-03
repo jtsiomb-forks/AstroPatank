@@ -10,12 +10,14 @@
 #define SCR_UNCHAINED
 
 #ifndef SCR_UNCHAINED
+	#define UNCHAINED_BITS 0
 	#define SCR_LINE_BYTES ((SCR_W * SCR_BPP) / 8)
-	#define VRAM_PIXEL_OFFSET(x,y) ((y) * SCR_LINE_BYTES + (x))
 #else
-	#define SCR_LINE_BYTES (((SCR_W / 4) * SCR_BPP) / 8)
-	#define VRAM_PIXEL_OFFSET(x,y) ((y) * SCR_LINE_BYTES + ((x >> 2)))
+	#define UNCHAINED_BITS 2
+	#define SCR_LINE_BYTES (((SCR_W >> UNCHAINED_BITS) * SCR_BPP) / 8)
 #endif
+
+#define VRAM_PIXEL_OFFSET(x,y) ((y) * SCR_LINE_BYTES + (x))
 
 
 typedef struct Screen

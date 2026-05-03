@@ -358,12 +358,12 @@ static void renderMeshDots(Mesh *ms, uint8 *vram)
             const int xp = sx >> SCR_BITS;
             const int yp = sy >> SCR_BITS;
 
-			uint8 *dst = vram + VRAM_PIXEL_OFFSET(xp,yp);
+			uint8 *dst = vram + VRAM_PIXEL_OFFSET((xp>>UNCHAINED_BITS),yp);
 			#ifndef ANTIALIASING
 				*dst = color;
 			#else
-				const int fracX1 = (sx & SCR_AND) >> (SCR_BITS - SHADE_BITS);
-				const int fracY1 = (sy & SCR_AND) >> (SCR_BITS - SHADE_BITS);
+				const int fracX1 = (sx & AND_BITS(SCR_BITS + UNCHAINED_BITS)) >> (SCR_BITS + UNCHAINED_BITS - SHADE_BITS);
+				const int fracY1 = (sy & AND_BITS(SCR_BITS + UNCHAINED_BITS)) >> (SCR_BITS + UNCHAINED_BITS - SHADE_BITS);
 				const int fracX0 = SHADE_AND - fracX1;
 				const int fracY0 = SHADE_AND - fracY1;
 

@@ -61,6 +61,8 @@ fillScanlinesAsm_:
 		; In this point EBP=countY, EAX=color32, ESI=&scanline[yScanlineMin], EDI = &vram[yScanlineMin*320]
 		; EBX,ECX,EDX are free now. ECX will be altered/used for REP STOSD
 
+		; For later when we need to add ebx to edi, we move bx to dx, and high 16bit of edx is zero
+		; Alternative as I learned later on would be to do movzx ebx,bx inside, but might be one cycle more on the inner loop, so no worth it
 		xor edx,edx
 
 		scanlineLoopY:
@@ -77,14 +79,23 @@ fillScanlinesAsm_:
 			jns noNegX0
 				xor bx,bx
 			noNegX0:
-			mov dx,bx
-			add edi,edx
 
 			; if (x1 > SCR_W - 1) x1 = SCR_W - 1;
 			cmp cx,SCR_W
 			jc noClampX1
 				mov cx,SCR_W-1
 			noClampX1:
+
+			%ifdef SCR_UNCHAINED
+				shr bx,2
+				shr cx,2
+			%endif
+
+			mov dx,bx
+			add edi,edx
+
+			;movzx ebx,bx
+			;add edi,ebx
 
 			sub cx,bx	; CX = length
 

@@ -18,7 +18,7 @@ typedef struct Scanline
 } Scanline;
 
 
-#define FILL_SCANLINES_ASM
+//#define FILL_SCANLINES_ASM
 
 extern "C" {
 	void fillScanlinesAsm(uint8 color, uint8 *vram);
@@ -49,8 +49,12 @@ static inline void fillScanlines(uint8 color, uint8 *vram)
 		if (x0 < 0) x0 = 0;
 		if (x1 > SCR_W - 1) x1 = SCR_W - 1;
 
-		uint8 *dst = dstY + x0;
+		#ifdef SCR_UNCHAINED
+			x0 >>= 2;
+			x1 >>= 2;
+		#endif
 
+		uint8 *dst = dstY + x0;
 		int16 length = x1 - x0;
 
 		#ifdef ANTIALIASING_POLY
@@ -150,7 +154,7 @@ static inline void prepareScanlines(ScreenPoint *p0, ScreenPoint *p1, uint16 ant
 		while (countY-- > 0) {
 			s->x0 = (int16)(xp >> SCR_BITS);
 			#ifdef ANTIALIASING_POLY
-				uint16 fracBits = ((uint16)(xp >> (SCR_BITS - SHADE_BITS)) & 15) << 8;
+				uint16 fracBits = ((uint16)(xp >> ((SCR_BITS + UNCHAINED_BITS) - SHADE_BITS)) & 15) << 8;
 				s->a0 = antialiasBits | fracBits;
 			#endif
 
@@ -161,7 +165,7 @@ static inline void prepareScanlines(ScreenPoint *p0, ScreenPoint *p1, uint16 ant
 		while (countY-- > 0) {
 			s->x1 = (int16)(xp >> SCR_BITS);
 			#ifdef ANTIALIASING_POLY
-				uint16 fracBits = (15 - (uint16)(xp >> (SCR_BITS - SHADE_BITS)) & 15) << 8;
+				uint16 fracBits = (15 - (uint16)(xp >> ((SCR_BITS + UNCHAINED_BITS) - SHADE_BITS)) & 15) << 8;
 				s->a1 = antialiasBits | fracBits;
 			#endif
 
