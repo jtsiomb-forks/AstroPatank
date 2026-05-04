@@ -9,7 +9,7 @@
 #define SCR_H 200
 #define SCR_BPP 8
 
-#define SCR_UNCHAINED
+//#define SCR_UNCHAINED
 
 #ifndef SCR_UNCHAINED
 	#define UNCHAINED_BITS 0

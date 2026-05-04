@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "video.h"
+
 #define ANTIALIAS_LEFT		1
 #define ANTIALIAS_RIGHT		2
 #define ANTIALIAS_CENTER	4
@@ -18,7 +20,7 @@ typedef struct Scanline
 } Scanline;
 
 
-#define FILL_SCANLINES_ASM
+//#define FILL_SCANLINES_ASM
 
 extern "C" {
 	void fillScanlinesAsm(uint8 color, uint8 *vram);
@@ -26,16 +28,92 @@ extern "C" {
 	int yScanlineMin, yScanlineMax;
 }
 
-//1217 (1225)
-#define SCANLINE_FILL_NO_MEMSET
-//1354(1343,1375)
+
+static inline void fillScanlinesUnchained(uint8 color, uint8 *vram)
+{
+	uint8 *dstY = vram + VRAM_PIXEL_OFFSET(0,yScanlineMin);
+	uint32 color32 = (color << 24) | (color << 16) | (color << 8) | color;
+
+	Scanline *s = &scanline[yScanlineMin];
+	int countY = yScanlineMax - yScanlineMin;
+	while (countY-- > 0) {
+		int16 x0 = s->x0;
+		int16 x1 = s->x1;
+		uint16 a0 = s->a0;
+		uint16 a1 = s->a1;
+		++s;
+
+		if (x0 < 0) x0 = 0;
+		if (x1 > SCR_W - 1) x1 = SCR_W - 1;
+
+		int x0b = x0 >> 2;
+		int x1b = x1 >> 2;
+
+		if (x1b>x0b) {
+			uint8 xle = x0 & 3;
+			if (xle!=0) {
+				setPlaneMask(~((16 >> (4-xle)) - 1));
+				*(dstY + x0b) = color;
+				x0b++;
+			}
+			if (x1b>=x0b) {
+				uint8 xre = (x1-1) & 3;	// 1 pixel less on the right
+				if (xre != 3) {
+					setPlaneMask((16 >> (3-xre)) - 1);
+					*(dstY + x1b) = color;
+				}
+			}
+		} else {
+			// mask
+			// Need LUTs and more thinking
+		}
+
+		setPlaneMask(15);
+
+		int length = x1b - x0b;
+		uint8 *dst = dstY + x0b;
+		if (length < 5) {			// More optimal (4 should be fine, but 5 is slightly tiny more but insignificant)
+			while (length-- > 0) {
+				*dst++ = color;
+			};
+		} else {
+			int16 xl = x0b & 3;
+			if (xl) {
+				int16 l = 4-xl;
+				length -= l;
+				while (l-- != 0) {
+					*dst++ = color;
+				};
+			}
+
+			uint32 *dst32 = (uint32*)dst;
+			while(length > 3) {
+				*dst32++ = color32;
+				length-=4;
+			};
+
+			dst = (uint8*)dst32;
+			while(length-- > 0) {
+				*dst++ = color;
+			};
+		}
+
+		#ifdef ANTIALIASING_POLY
+			if (a1 & ANTIALIAS_RIGHT) {
+				if (length == -1) {
+					*dst = color - (a1 >> 8);
+				}
+			}
+		#endif
+
+		dstY += SCR_LINE_BYTES;
+	};
+}
 
 static inline void fillScanlines(uint8 color, uint8 *vram)
 {
 	uint8 *dstY = vram + VRAM_PIXEL_OFFSET(0,yScanlineMin);
-	#ifdef SCANLINE_FILL_NO_MEMSET
-		uint32 color32 = (color << 24) | (color << 16) | (color << 8) | color;
-	#endif
+	uint32 color32 = (color << 24) | (color << 16) | (color << 8) | color;
 
 	Scanline *s = &scanline[yScanlineMin];
 	int countY = yScanlineMax - yScanlineMin;
@@ -69,38 +147,31 @@ static inline void fillScanlines(uint8 color, uint8 *vram)
 			}
 		#endif
 
-		#ifdef SCANLINE_FILL_NO_MEMSET
-			//if ((x0 >> 2)==((x1 - 1) >> 2)) {
-			if (length < 5) {			// More optimal (4 should be fine, but 5 is slightly tiny more but insignificant)
-				while (length-- > 0) {
-					*dst++ = color;
-				};
-			} else {
-				int16 xl = x0 & 3;
-				if (xl) {
-					int16 l = 4-xl;
-					length -= l;
-					while (l-- != 0) {
-						*dst++ = color;
-					};
-				}
-
-				uint32 *dst32 = (uint32*)dst;
-				while(length > 3) {
-					*dst32++ = color32;
-					length-=4;
-				};
-
-				dst = (uint8*)dst32;
-				while(length-- > 0) {
+		if (length < 5) {			// More optimal (4 should be fine, but 5 is slightly tiny more but insignificant)
+			while (length-- > 0) {
+				*dst++ = color;
+			};
+		} else {
+			int16 xl = x0 & 3;
+			if (xl) {
+				int16 l = 4-xl;
+				length -= l;
+				while (l-- != 0) {
 					*dst++ = color;
 				};
 			}
-		#else
-			if (length > 0) {
-				memset(dst, color, length);
-			}
-		#endif
+
+			uint32 *dst32 = (uint32*)dst;
+			while(length > 3) {
+				*dst32++ = color32;
+				length-=4;
+			};
+
+			dst = (uint8*)dst32;
+			while(length-- > 0) {
+				*dst++ = color;
+			};
+		}
 
 		#ifdef ANTIALIASING_POLY
 			if (a1 & ANTIALIAS_RIGHT) {
@@ -222,7 +293,11 @@ void drawPolyAntialiased(ScreenPoint *p[], uint8 *edgeAdjacentPolysNum, int edge
 #ifdef FILL_SCANLINES_ASM
 	fillScanlinesAsm(col, vram);
 #else
-	fillScanlines(col, vram);
+	#ifdef SCR_UNCHAINED
+		fillScanlinesUnchained(col, vram);
+	#else
+		fillScanlines(col, vram);
+	#endif
 #endif
 }
 
@@ -241,6 +316,10 @@ void drawPoly(ScreenPoint *p[], int edgesNum, uint8 color, uint8 *vram)
 #ifdef FILL_SCANLINES_ASM
 	fillScanlinesAsm(col, vram);
 #else
-	fillScanlines(col, vram);
+	#ifdef SCR_UNCHAINED
+		fillScanlinesUnchained(col, vram);
+	#else
+		fillScanlines(col, vram);
+	#endif
 #endif
 }
