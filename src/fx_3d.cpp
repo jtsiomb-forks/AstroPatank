@@ -9,6 +9,7 @@
 #include "mathutil.h"
 
 #include "demo.h"
+#include "tile_3d.h"
 #include "video.h"
 #include "input.h"
 #include "vector.h"
@@ -28,7 +29,7 @@ int8 *objMeshData[NUM_OBJECTS] = {	objQuadData, objTripodData, objPyramidData, o
 static Mesh *objectMesh[NUM_OBJECTS];
 
 static int renderMethod = RENDER_POLYS;
-static int objectMeshIndex = 11;
+static int objectMeshIndex = 0;
 
 
 static void script3D(Mesh *ms, int t)
@@ -114,7 +115,13 @@ static void setupPalette3D()
 
 static void updateScene3D(Screen *screen, int t)
 {
+	static Vec3 pos(0,0,1024);
+
 	Mesh *ms = objectMesh[objectMeshIndex];
+
+	renderTilemap3d(&pos, screen);
+	pos.x = (TILEMAP_WIDTH / 2) * TILE_SIZE + sin((float)t / 2150.0f) * (4 * TILE_SIZE);
+	pos.y = (TILEMAP_HEIGHT / 2) * TILE_SIZE + sin((float)t / 1610.0f) * (3 * TILE_SIZE);
 
 	script3D(ms, t);
 	renderMesh(ms, screen);
@@ -136,6 +143,8 @@ void fx3dInit(bool onlySetup)
 			//reversePolygonOrder(objectMesh[i]); // Why did this work on EGA but here we shouldn't be doing it?
 		}
 	}
+
+	tilemap3dInit();
 
 	setupPalette3D();
 }
