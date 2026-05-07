@@ -9,6 +9,8 @@ typedef struct Buttons
 	bool right;
 	bool up;
 	bool down;
+	bool zoomIn;
+	bool zoomOut;
 	bool fire;
 	bool escape;
 }Buttons;

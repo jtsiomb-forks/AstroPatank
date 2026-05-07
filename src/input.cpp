@@ -64,24 +64,34 @@ static void keyCommands()
 	key &= 127;
 	switch (key) {
 		case 75:	// Left arrow
-		case 30:	// A
 			buttonsHeld.left = !released;
 		break;
 
 		case 77:	// Right arrow
-		case 32:	// D
 			buttonsHeld.right = !released;
 		break;
 
 		case 72:	// Up arrow
-		case 17:	// W
 			buttonsHeld.up = !released;
 		break;
 
 		case 80:	// Down arrow
+			buttonsHeld.down = !released;
+		break;
+
+		case 17:	// W
+			buttonsHeld.zoomIn = !released;
+		break;
+
+		case 30:	// A
+		break;
+
 		case 31:	// S
 		case 45:	// X
-			buttonsHeld.down = !released;
+			buttonsHeld.zoomOut = !released;
+		break;
+
+		case 32:	// D
 		break;
 
 		case 57:	// Space

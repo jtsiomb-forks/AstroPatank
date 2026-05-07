@@ -29,8 +29,10 @@ int8 *objMeshData[NUM_OBJECTS] = {	objQuadData, objTripodData, objPyramidData, o
 static Mesh *objectMesh[NUM_OBJECTS];
 
 static int renderMethod = RENDER_POLYS;
-static int objectMeshIndex = 0;
+static int objectMeshIndex = 4;
 
+static Vec3 playerPos;
+static int playerSpeed = 8;
 
 static void script3D(Mesh *ms, int t)
 {
@@ -46,12 +48,12 @@ static void script3D(Mesh *ms, int t)
 
 	ms->pos.x = 0;
 	ms->pos.y = 0;
-	ms->pos.z = 4096;
+	ms->pos.z = playerPos.z;
 
 	if (runAndStop < 96) {
-		rx += 6;
-		ry += 4;
-		rz -= 8;
+		rx += 16;
+		ry += 14;
+		rz -= 18;
 		//runAndStop++;
 	}
 
@@ -60,33 +62,45 @@ static void script3D(Mesh *ms, int t)
 	ry = 2*t;
 	rz = 3*t;*/
 
+	//playerPos.x = (TILEMAP_WIDTH / 2) * TILE_SIZE + sin((float)t / 2150.0f) * (4 * TILE_SIZE);
+	//playerPos.y = (TILEMAP_HEIGHT / 2) * TILE_SIZE + sin((float)t / 1610.0f) * (3 * TILE_SIZE);
+	//playerPos.z = 1024;
+
 	ms->renderMode = renderMethod;
 }
 
 static void input3D()
 {
-	static bool leftPressed = false;
-	static bool rightPressed = false;
-	static bool upPressed = false;
-	static bool downPressed = false;
+	//static bool leftPressed = false;
+	//static bool rightPressed = false;
+	//static bool upPressed = false;
+	//static bool downPressed = false;
 
-	if (buttonsHeld.left & !leftPressed) {
-		if (--objectMeshIndex < 0) objectMeshIndex = NUM_OBJECTS-1;
+	if (buttonsHeld.left) {// & !leftPressed) {
+		playerPos.x -= playerSpeed;
 	}
-	if (buttonsHeld.right & !rightPressed) {
-		if (++objectMeshIndex > NUM_OBJECTS-1) objectMeshIndex = 0;
+	if (buttonsHeld.right) {// & !rightPressed) {
+		playerPos.x += playerSpeed;
 	}
-	if (buttonsHeld.up & !upPressed) {
-		if (++renderMethod > RENDER_METHODS-1) renderMethod = 0;
+	if (buttonsHeld.up) {// & !upPressed) {
+		playerPos.y -= playerSpeed;
 	}
-	if (buttonsHeld.down & !downPressed) {
-		if (--renderMethod < 0) renderMethod = RENDER_METHODS-1;
+	if (buttonsHeld.down) {// & !downPressed) {
+		playerPos.y += playerSpeed;
 	}
 
-	leftPressed = buttonsHeld.left;
-	rightPressed = buttonsHeld.right;
-	upPressed = buttonsHeld.up;
-	downPressed = buttonsHeld.down;
+	if (buttonsHeld.zoomIn) {
+		playerPos.z -= 4*playerSpeed;
+	}
+
+	if (buttonsHeld.zoomOut) {
+		playerPos.z += 4*playerSpeed;
+	}
+
+	//leftPressed = buttonsHeld.left;
+	//rightPressed = buttonsHeld.right;
+	//upPressed = buttonsHeld.up;
+	//downPressed = buttonsHeld.down;
 }
 
 static void setupPalette3D()
@@ -115,13 +129,9 @@ static void setupPalette3D()
 
 static void updateScene3D(Screen *screen, int t)
 {
-	static Vec3 pos(0,0,1024);
-
 	Mesh *ms = objectMesh[objectMeshIndex];
 
-	renderTilemap3d(&pos, screen);
-	pos.x = (TILEMAP_WIDTH / 2) * TILE_SIZE + sin((float)t / 2150.0f) * (4 * TILE_SIZE);
-	pos.y = (TILEMAP_HEIGHT / 2) * TILE_SIZE + sin((float)t / 1610.0f) * (3 * TILE_SIZE);
+	renderTilemap3d(&playerPos, screen);
 
 	script3D(ms, t);
 	renderMesh(ms, screen);
@@ -143,6 +153,10 @@ void fx3dInit(bool onlySetup)
 			//reversePolygonOrder(objectMesh[i]); // Why did this work on EGA but here we shouldn't be doing it?
 		}
 	}
+
+	playerPos.x = (TILEMAP_WIDTH / 2) * TILE_SIZE;
+	playerPos.y = (TILEMAP_HEIGHT / 2) * TILE_SIZE;
+	playerPos.z = 1024;
 
 	tilemap3dInit();
 

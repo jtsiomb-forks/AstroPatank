@@ -16,7 +16,7 @@
 #define VEC_SIZE (1 << 8)
 
 #define DEFAULT_CPC_GRID_RANGE 4
-#define DEFAULT_CPC_GRID_SCALE 256
+#define DEFAULT_CPC_GRID_SCALE 32
 
 static void prepareEdgeToPolyIndices(Mesh *ms)
 {
