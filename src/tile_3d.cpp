@@ -80,6 +80,53 @@ static void drawDot(int xs, int ys, uint8 color, uint8 *vram)
 	}
 }
 
+static void drawQuadLines(int x0, int y0, int x1, int y1, uint8 color, uint8 *vram)
+{
+	CLAMP(x0,0,SCR_W-1);
+	CLAMP(x1,0,SCR_W-1);
+	CLAMP(y0,0,SCR_H-1);
+	CLAMP(y1,0,SCR_H-1);
+
+	uint32 color32 = (color << 24) | (color << 16) | (color << 8) | color;
+
+	if (x1 <= x0 || y1 <= y0) return;
+
+	int countY = y1 - y0;
+	for (int y = y0; y<=y1; y+=countY) {
+		uint8 *dst = vram + VRAM_PIXEL_OFFSET((x0>>UNCHAINED_BITS),y);
+		int16 length = x1 - x0;
+
+		int16 xl = x0 & 3;
+		if (xl) {
+			int16 l = 4-xl;
+			length -= l;
+			while (l-- != 0) {
+				*dst++ = color;
+			};
+		}
+
+		uint32 *dst32 = (uint32*)dst;
+		while(length > 3) {
+			*dst32++ = color32;
+			length-=4;
+		};
+
+		dst = (uint8*)dst32;
+		while(length-- > 0) {
+			*dst++ = color;
+		};
+	};
+
+	uint8 *dstX0 = vram + VRAM_PIXEL_OFFSET((x0>>UNCHAINED_BITS),y0);
+	uint8 *dstX1 = vram + VRAM_PIXEL_OFFSET((x1>>UNCHAINED_BITS),y0);
+	for (int y = y0; y<y1; ++y) {
+		*dstX0 = color;
+		*dstX1 = color;
+		dstX0 += SCR_LINE_BYTES;
+		dstX1 += SCR_LINE_BYTES;
+	}
+}
+
 static void drawQuad(int x0, int y0, int x1, int y1, uint8 color, uint8 *vram)
 {
 	CLAMP(x0,0,SCR_W-1);
@@ -202,7 +249,7 @@ static void renderTilemap3dLayerLines(int x0, int y0, int x1, int y1, uint8 colo
 		for (int x=x0; x<x1; ++x) {
 			if (tmap[x]) {
 				const int xs = tmapPos[x].xs + 8;
-				drawQuad(xs,ys, xs+tileScrSize, ys+tileScrSize, color, vram);
+				drawQuadLines(xs,ys, xs+tileScrSize, ys+tileScrSize, color, vram);
 			}
 		}
 		tmap += TILEMAP_WIDTH;
