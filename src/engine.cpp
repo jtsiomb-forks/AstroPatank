@@ -169,11 +169,14 @@ static void translateAndProjectMesh(Mesh *ms)
 			int xp = (x << (PROJ_BITS + SCR_BITS)) / z + (SCR_W << SCR_BITS) / 2;
 			int yp = (SCR_H << SCR_BITS) / 2 - (y << (PROJ_BITS + SCR_BITS)) / z;
 
-			if (xp >= 0 && xp < (SCR_W << SCR_BITS) && yp >= 0 && yp < (SCR_H << SCR_BITS)) {
-				// We want center subpixel? Can change it later here globally, not everywhere else on the renderers
-				dst->x = (xp + SCR_RANGE / 2);
-				dst->y = (yp + SCR_RANGE / 2);
-			} else {
+			// Commented that out, it's proper, for many cube in grid to work although we are not gonna use it. Seems proper polygon clipping works there, no need to exclude polygons here
+			// It's not proper precise clipping with special cases anyway (I've done it on 3DO no need here for now)
+
+			// We want center subpixel? Can change it later here globally, not everywhere else on the renderers
+			dst->x = (xp + SCR_RANGE / 2);
+			dst->y = (yp + SCR_RANGE / 2);
+
+			if (xp < 0 || xp >= ((SCR_W-1) << SCR_BITS) || yp < 0 || yp >= ((SCR_H-1) << SCR_BITS)) {
 				z = 0;	// z<=0 denotes skip this point later for the renderer
 			}
 		}

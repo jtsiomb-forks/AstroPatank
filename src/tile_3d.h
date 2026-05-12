@@ -15,7 +15,7 @@
 #define TILEMAP_SIZE (TILEMAP_LAYER_SIZE * TILEMAP_LAYERS)
 
 void tilemap3dInit();
-void renderTilemap3d(Vec3 *pos, Screen *screen);
+void renderTilemap3dLayer(Vec3 *pos, uint8 layer, Screen *screen);
 
 void advTileRenderType(bool inc);
 

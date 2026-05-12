@@ -190,7 +190,7 @@ static inline void drawAntialiasedLineSlopeX(int i0, int i1, int p0, int d, uint
 		const int yp = y >> SCR_BITS;
 		uint8 *dst = vram + VRAM_PIXEL_OFFSET(x1+1,yp);
 		*dst |= colBase + ((c0 * frac1) >> SCR_BITS);
-		if (yp < SCR_H - 1) {
+		if (yp > 0 && yp < SCR_H - 1) {
 			*(dst + SCR_LINE_BYTES) |= colBase + ((c1 * frac1) >> SCR_BITS);
 		}
 	}
@@ -233,7 +233,7 @@ static inline void drawAntialiasedLineSlopeY(int i0, int i1, int p0, int d, uint
 
 		const int xp = x >> SCR_BITS;
 		*(vram + xp) = colBase + c0;
-		if (xp < SCR_W - 1) {
+		if (xp > 0 && xp < SCR_W - 1) {
 			*(vram + xp + 1) = colBase + c1;
 		}
 
@@ -264,6 +264,11 @@ void drawLineAntialiased(ScreenPoint *p0, ScreenPoint *p1, uint8 color4, uint8 *
 
 	int dx = x1 - x0;
 	int dy = y1 - y0;
+
+	// I will do this the laziest way for now as I don't properly clamp lines outside, just so that it doesn't crash.
+	// I leave the proper clamping and interpolation to the edges for the future.
+	if (x0 < (1 << SCR_BITS) || x0 > ((SCR_W - 2) << SCR_BITS) || x1 < (1 << SCR_BITS) || x1 > ((SCR_W - 2) << SCR_BITS) || 
+		y0 < (1 << SCR_BITS) || y0 > ((SCR_H - 2) << SCR_BITS) || y1 < (1 << SCR_BITS) || y1 > ((SCR_H - 2) << SCR_BITS)) return;
 
     if (dx == 0 && dy == 0) return;
 

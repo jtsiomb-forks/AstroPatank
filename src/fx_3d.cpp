@@ -29,7 +29,7 @@ static int8 *objMeshData[NUM_OBJECTS] = {	objQuadData, objTripodData, objPyramid
 static Mesh *objectMesh[NUM_OBJECTS];
 
 static int renderMethod = RENDER_POLYS;
-static int objectMeshIndex = 4;
+static int objectMeshIndex = 6;
 
 static Vec3 playerPos;
 static int playerSpeed = 8;
@@ -51,9 +51,9 @@ static void script3D(Mesh *ms, int t)
 	ms->pos.z = playerPos.z;
 
 	if (runAndStop < 96) {
-		rx += 16;
-		ry += 14;
-		rz -= 18;
+		rx += 8;
+		ry += 12;
+		//rz -= 18;
 		//runAndStop++;
 	}
 
@@ -143,12 +143,16 @@ static void setupPalette3D()
 
 static void updateScene3D(Screen *screen, int t)
 {
-	Mesh *ms = objectMesh[objectMeshIndex];
+	renderTilemap3dLayer(&playerPos, 0, screen);
 
-	renderTilemap3d(&playerPos, screen);
+	Mesh *ms = objectMesh[objectMeshIndex];
 
 	script3D(ms, t);
 	renderMesh(ms, screen);
+
+	for (int i=1; i<TILEMAP_LAYERS; ++i) {
+		renderTilemap3dLayer(&playerPos, i, screen);
+	}
 }
 
 static void clearScreen(Screen *screen)
@@ -164,6 +168,7 @@ void fx3dInit(bool onlySetup)
 
 		for (int i=0; i<NUM_OBJECTS; ++i) {
 			objectMesh[i] = initMeshFromCPCdata(objMeshData[i]);
+			objectMesh[i]->gridScale >>= 3;
 			//reversePolygonOrder(objectMesh[i]); // Why did this work on EGA but here we shouldn't be doing it?
 		}
 	}

@@ -75,7 +75,11 @@ void tilemap3dInit()
 		for (int y=0; y<TILEMAP_HEIGHT; ++y) {
 			for (int x=0; x<TILEMAP_WIDTH; ++x) {
 				uint8 c = 0;
-				if (!(x & n) && !(y & n)) c = 1;
+				if (i==2) {
+					if (!(x & n) || !(y & n)) c = 1;
+				} else {
+					if (!(x & n) && !(y & n)) c = 1;
+				}
 				*dst++ = c;
 			}
 		}
@@ -253,9 +257,10 @@ static void renderTilemap3DLayerMesh(int x0, int y0, int x1, int y1, uint8 *tmap
 
 				Mesh *ms = objTileMesh[c];
 				ms->rot.x = ms->rot.y = ms->rot.z = 0;
-				ms->pos.x = px>>1;
-				ms->pos.y = -py>>1;
-				ms->pos.z = layerZ>>2;
+				ms->pos.x = px + 128;
+				ms->pos.y = -py - 128;
+				ms->pos.z = layerZ - 128;
+				ms->renderMode = RENDER_POLYS;
 				renderMesh(ms, screen);
 			}
 		}
@@ -266,10 +271,10 @@ static void renderTilemap3DLayerMesh(int x0, int y0, int x1, int y1, uint8 *tmap
 static void renderTilemap3dLayerQuads(int x0, int y0, int x1, int y1, uint8 color, int tileScrSize, uint8 *tmap, uint8 *vram)
 {
 	for (int y=y0; y<y1; ++y) {
-		const int ys = tmapPos[y].ys + 1;
+		const int ys = tmapPos[y].ys;
 		for (int x=x0; x<x1; ++x) {
 			if (tmap[x]) {
-				const int xs = tmapPos[x].xs + 1;
+				const int xs = tmapPos[x].xs;
 				drawQuad(xs,ys, xs+tileScrSize, ys+tileScrSize, color, vram);
 			}
 		}
@@ -280,10 +285,10 @@ static void renderTilemap3dLayerQuads(int x0, int y0, int x1, int y1, uint8 colo
 static void renderTilemap3dLayerLines(int x0, int y0, int x1, int y1, uint8 color, int tileScrSize, uint8 *tmap, uint8 *vram)
 {
 	for (int y=y0; y<y1; ++y) {
-		const int ys = tmapPos[y].ys + 8;
+		const int ys = tmapPos[y].ys;
 		for (int x=x0; x<x1; ++x) {
 			if (tmap[x]) {
-				const int xs = tmapPos[x].xs + 8;
+				const int xs = tmapPos[x].xs;
 				drawQuadLines(xs,ys, xs+tileScrSize, ys+tileScrSize, color, vram);
 			}
 		}
@@ -304,8 +309,10 @@ static void renderTilemap3dLayerDots(int x0, int y0, int x1, int y1, uint8 color
 	}
 }
 
-static void renderTilemap3dLayer(Vec3 *pos, uint8 layer, Screen *screen)
+void renderTilemap3dLayer(Vec3 *pos, uint8 layer, Screen *screen)
 {
+	updateTilemapEdges(pos, layer);
+
 	TilemapRange *tmapRange = &tilemapRange[layer];
 	const int x0 = tmapRange->x0;
 	const int x1 = tmapRange->x1;
@@ -321,7 +328,7 @@ static void renderTilemap3dLayer(Vec3 *pos, uint8 layer, Screen *screen)
 	int layerZ, tileScrSize;
 	if (tileRenderType > TILE_RENDER_DOTS) {
 		layerZ = pos->z + TILE_SIZE * (TILEMAP_LAYERS - layer);
-		tileScrSize = (TILE_SIZE << PROJ_BITS) / layerZ - 2;
+		tileScrSize = (TILE_SIZE << PROJ_BITS) / layerZ;
 	}
 
 	switch(tileRenderType) {
@@ -346,11 +353,3 @@ static void renderTilemap3dLayer(Vec3 *pos, uint8 layer, Screen *screen)
 //262-1841 (131072)
 //407-2121
 //395-2096
-
-void renderTilemap3d(Vec3 *pos, Screen *screen)
-{
-	for (int i=0; i<TILEMAP_LAYERS; ++i) {
-		updateTilemapEdges(pos, i);
-		renderTilemap3dLayer(pos, i, screen);
-	}
-}
