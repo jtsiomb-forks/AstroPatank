@@ -248,6 +248,9 @@ static void updateTilemapEdges(Vec3 *pos, uint8 layer)
 
 static void renderTilemap3DLayerMesh(int x0, int y0, int x1, int y1, uint8 *tmap, int layerZ, Screen *screen)
 {
+	// Once to update grid axes of the same and same cube, so it never renders just transforms cube object once
+	renderMeshHack(objTileMesh[1], screen, true);
+
 	for (int y=y0; y<y1; ++y) {
 		const int py = tmapPos[y].y;
 		for (int x=x0; x<x1; ++x) {
@@ -256,12 +259,10 @@ static void renderTilemap3DLayerMesh(int x0, int y0, int x1, int y1, uint8 *tmap
 				const int px = tmapPos[x].x;
 
 				Mesh *ms = objTileMesh[c];
-				ms->rot.x = ms->rot.y = ms->rot.z = 0;
 				ms->pos.x = px + 128;
 				ms->pos.y = -py - 128;
 				ms->pos.z = layerZ - 128;
-				ms->renderMode = RENDER_POLYS;
-				renderMesh(ms, screen);
+				renderMeshHack(ms, screen, false);	// now only translate and project and render (transfrom grid axes happened already once for all)
 			}
 		}
 		tmap += TILEMAP_WIDTH;

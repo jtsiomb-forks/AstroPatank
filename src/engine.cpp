@@ -387,6 +387,16 @@ static void renderMeshDots(Mesh *ms, uint8 *vram)
 	} while(--count != 0);
 }
 
+void renderMeshHack(Mesh *ms, Screen *screen, bool onlyTransform)
+{
+	if (onlyTransform) {
+		transformGridMesh(ms);
+	} else {
+		translateAndProjectMesh(ms);
+		renderMeshPolys(ms, (uint8*)screen->data);
+	}
+}
+
 void renderMesh(Mesh *ms, Screen *screen)
 {
 	uint8 *vram = (uint8*)screen->data;

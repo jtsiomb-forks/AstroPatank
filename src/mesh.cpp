@@ -15,7 +15,7 @@
 
 #define VEC_SIZE (1 << 8)
 
-#define DEFAULT_CPC_GRID_RANGE 7
+#define DEFAULT_CPC_GRID_RANGE 4
 #define DEFAULT_CPC_GRID_SCALE 128
 
 static void prepareEdgeToPolyIndices(Mesh *ms)
@@ -174,6 +174,9 @@ Mesh* initMeshFromCPCdata(int8 *data)
 
 	ms->polyColor = (uint8*)malloc(numPolys);
 	memcpy(ms->polyColor, data, numPolys);
+
+	ms->pos = Vec3(0,0,0);
+	ms->rot = Vec3(0,0,0);
 
 	ms->renderMode = RENDER_POLYS;
 	ms->gridRange = DEFAULT_CPC_GRID_RANGE;

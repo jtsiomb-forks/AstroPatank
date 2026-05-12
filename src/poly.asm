@@ -2,7 +2,7 @@
 	CPU 386
 	bits 32
 
-	%define SCR_UNCHAINED
+	;%define SCR_UNCHAINED
 
 	SCR_W equ 320
 	SCR_H equ 200

@@ -20,7 +20,7 @@ typedef struct Scanline
 } Scanline;
 
 
-//#define FILL_SCANLINES_ASM
+#define FILL_SCANLINES_ASM
 
 extern "C" {
 	void fillScanlinesAsm(uint8 color, uint8 *vram);
