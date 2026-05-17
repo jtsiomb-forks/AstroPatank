@@ -43,21 +43,52 @@ static int tileRenderType = TILE_RENDER_DOTS;
 
 static ScreenPoint tileScrPt[TILEMAP_SIZE];
 static TileMeshInfo tileMeshInfo[TILEMAP_SIZE];
-static ScreenPoint *scrPlist[TILEMAP_SIZE * 5];		// good theoritical maximum? Will reduce..
-static int scrPindex = 0;
+static ScreenPoint *scrPlist[TILEMAP_SIZE * (4 / 2) * 5];		// good theoritical maximum? Will reduce..
+static ScreenPoint **spNext = scrPlist;
 
 // scrPlist 4 ScreenPoint* per quad point at &tileScrPtr[n]
 // tileMeshInfo per tile, tells you number of quads (can be 0 to 6 (but 5 max in our case as the bottom is always out of view)), then pointer to scrPlist start of the sequence of points
 
+//New tileMeshInfo[numQuads, spNext]
+//==================================
+//spStart = spNext
+//From tile look 6 directions, inc numQuads each time
+//add four ScreenPoint* to *spNext = sp0/1/2/3
 
-void advTileRenderType(bool inc)
+
+static void buildTilemapMesh()
 {
-	if (inc) {
-		tileRenderType++;
-		if (tileRenderType >= TILE_RENDER_COUNT) tileRenderType = 0;
-	} else {
-		tileRenderType--;
-		if (tileRenderType < 0) tileRenderType = TILE_RENDER_COUNT - 1;
+	uint8 *src = tilemap3d;
+	ScreenPoint *srcPt = tileScrPt;
+	TileMeshInfo *dst = tileMeshInfo;
+
+	for (int i=0; i<TILEMAP_LAYERS; ++i) {
+		for (int y=0; y<TILEMAP_HEIGHT-1; ++y) {
+			for (int x=0; x<TILEMAP_WIDTH-1; ++x) {
+				int numQuads = 0;
+				uint8 c = *src;
+				if (c != 0) {
+					if (i==TILEMAP_LAYERS-1 || *(src + TILEMAP_LAYER_SIZE)==0) {
+						dst->spStart = spNext;
+						*spNext++ = &srcPt[0];
+						*spNext++ = &srcPt[1];
+						*spNext++ = &srcPt[1+TILEMAP_WIDTH];
+						*spNext++ = &srcPt[TILEMAP_WIDTH];
+						++numQuads;
+					}
+					if (i > 0) {
+					}
+				}
+				dst->numQuads = numQuads;
+
+				spNext++;
+				src++;
+			}
+			spNext++;
+			src++;
+		}
+		spNext += TILEMAP_WIDTH;
+		src += TILEMAP_WIDTH;
 	}
 }
 
@@ -65,9 +96,9 @@ void tilemap3dInit()
 {
 	memset(tilemap3d, 0, sizeof(tilemap3d));
 
+	uint8 *dst = tilemap3d;
 	for (int i=0; i<TILEMAP_LAYERS; ++i) {
 		uint8 n = (1 << (1+i)) - 1;
-		uint8 *dst = &tilemap3d[i*TILEMAP_LAYER_SIZE];
 		for (int y=0; y<TILEMAP_HEIGHT; ++y) {
 			for (int x=0; x<TILEMAP_WIDTH; ++x) {
 				uint8 c = 0;
@@ -80,10 +111,25 @@ void tilemap3dInit()
 			}
 		}
 	}
+
+	buildTilemapMesh();
+}
+
+void advTileRenderType(bool inc)
+{
+	if (inc) {
+		tileRenderType++;
+		if (tileRenderType >= TILE_RENDER_COUNT) tileRenderType = 0;
+	} else {
+		tileRenderType--;
+		if (tileRenderType < 0) tileRenderType = TILE_RENDER_COUNT - 1;
+	}
 }
 
 static void drawDot(int xs, int ys, uint8 color, uint8 *vram)
 {
+	xs >>= SCR_BITS;
+	ys >>= SCR_BITS;
 	if (ys >= 0 && ys < SCR_H && xs >=0 && xs < SCR_W) {
 		uint8 *dst = vram + VRAM_PIXEL_OFFSET((xs>>UNCHAINED_BITS),ys);
 		*dst = color;
@@ -92,6 +138,11 @@ static void drawDot(int xs, int ys, uint8 color, uint8 *vram)
 
 static void drawRectangleLines(int x0, int y0, int x1, int y1, uint8 color, uint8 *vram)
 {
+	x0 >>= SCR_BITS;
+	y0 >>= SCR_BITS;
+	x1 >>= SCR_BITS;
+	y1 >>= SCR_BITS;
+
 	CLAMP(x0,0,SCR_W-1);
 	CLAMP(x1,0,SCR_W-1);
 	CLAMP(y0,0,SCR_H-1);
@@ -139,6 +190,11 @@ static void drawRectangleLines(int x0, int y0, int x1, int y1, uint8 color, uint
 
 static void drawRectangle(int x0, int y0, int x1, int y1, uint8 color, uint8 *vram)
 {
+	x0 >>= SCR_BITS;
+	y0 >>= SCR_BITS;
+	x1 >>= SCR_BITS;
+	y1 >>= SCR_BITS;
+
 	CLAMP(x0,0,SCR_W-1);
 	CLAMP(x1,0,SCR_W-1);
 	CLAMP(y0,0,SCR_H-1);
@@ -212,14 +268,16 @@ static void updateTilemapEdges(Vec3 *pos, uint8 layer)
 	findTilemapExtends(-pos->x, TILEMAP_WIDTH, edgeX, &tmapGridInfo.x0, &tmapGridInfo.x1);
 	findTilemapExtends(-pos->y, TILEMAP_HEIGHT, edgeY, &tmapGridInfo.y0, &tmapGridInfo.y1);
 
-	tmapGridInfo.xs0 = ((-pos->x + tmapGridInfo.x0 * TILE_SIZE) << PROJ_BITS) / layerZ + SCR_W / 2;
-	tmapGridInfo.ys0 = ((-pos->y + tmapGridInfo.y0 * TILE_SIZE) << PROJ_BITS) / layerZ + SCR_H / 2;
-	tmapGridInfo.tileStep = (TILE_SIZE << PROJ_BITS) / layerZ;
+	tmapGridInfo.xs0 = ((-pos->x + tmapGridInfo.x0 * TILE_SIZE) << (SCR_BITS + PROJ_BITS)) / layerZ + ((SCR_W / 2) << SCR_BITS);
+	tmapGridInfo.ys0 = ((-pos->y + tmapGridInfo.y0 * TILE_SIZE) << (SCR_BITS + PROJ_BITS)) / layerZ + ((SCR_H / 2) << SCR_BITS);
+	tmapGridInfo.tileStep = (TILE_SIZE << (SCR_BITS + PROJ_BITS)) / layerZ;
 }
 
-static void renderTilemap3DLayerMesh(uint8 layer, uint8 *tmap, uint8 *vram)
+static void renderTilemap3DLayerMesh(uint8 layer, uint8 color, uint8 *vram)
 {
-	ScreenPoint *sp = &tileScrPt[layer * TILEMAP_LAYER_SIZE + tmapGridInfo.y0 * TILEMAP_WIDTH];
+	const int tileRowOffset = layer * TILEMAP_LAYER_SIZE + tmapGridInfo.y0 * TILEMAP_WIDTH;
+	ScreenPoint *sp = &tileScrPt[tileRowOffset];
+	TileMeshInfo *tmi = &tileMeshInfo[tileRowOffset];
 
 	int x0 = tmapGridInfo.x0;
 	int y0 = tmapGridInfo.y0;
@@ -242,6 +300,20 @@ static void renderTilemap3DLayerMesh(uint8 layer, uint8 *tmap, uint8 *vram)
 		}
 		ys += step;
 		sp += TILEMAP_WIDTH;
+	}
+
+	for (int y=y0; y<y1; ++y) {
+		for (int x=x0; x<x1; ++x) {
+			int numQuads = tmi[x].numQuads;
+			if (numQuads != 0) {
+				ScreenPoint **spQuad = tmi[x].spStart;
+				for (int n=0; n<numQuads; ++n) {
+					drawQuad(spQuad, color, vram);
+					spQuad += 4;
+				}
+			}
+		}
+		tmi += TILEMAP_WIDTH;
 	}
 }
 
@@ -335,10 +407,10 @@ void renderTilemap3dLayer(Vec3 *pos, uint8 layer, Screen *screen)
 		break;
 
 		case TILE_RENDER_MESH:
-			renderTilemap3DLayerMesh(layer,tmap,vram);
+			renderTilemap3DLayerMesh(layer, color, vram);
 		break;
 	}
 }
 
-// start   : 2013, 1595, 866
-// zoom out: 621, 230, 250
+// start   : 2013, 1595, 866 (2037, 1594, 833)
+// zoom out: 621, 230, 250 (613, 206, 198)
