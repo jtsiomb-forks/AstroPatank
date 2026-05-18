@@ -63,32 +63,30 @@ static void buildTilemapMesh()
 	TileMeshInfo *dst = tileMeshInfo;
 
 	for (int i=0; i<TILEMAP_LAYERS; ++i) {
-		for (int y=0; y<TILEMAP_HEIGHT-1; ++y) {
-			for (int x=0; x<TILEMAP_WIDTH-1; ++x) {
+		for (int y=0; y<TILEMAP_HEIGHT; ++y) {
+			for (int x=0; x<TILEMAP_WIDTH; ++x) {
 				int numQuads = 0;
-				uint8 c = *src;
-				if (c != 0) {
-					if (i==TILEMAP_LAYERS-1 || *(src + TILEMAP_LAYER_SIZE)==0) {
-						dst->spStart = spNext;
-						*spNext++ = &srcPt[0];
-						*spNext++ = &srcPt[1];
-						*spNext++ = &srcPt[1+TILEMAP_WIDTH];
-						*spNext++ = &srcPt[TILEMAP_WIDTH];
-						++numQuads;
-					}
-					if (i > 0) {
+				if (x<TILEMAP_WIDTH-1 && y<TILEMAP_HEIGHT-1) {
+					uint8 c = *src;
+					if (c != 0) {
+						if (i==TILEMAP_LAYERS-1 || *(src + TILEMAP_LAYER_SIZE)==0) {
+							dst->spStart = spNext;
+							*spNext++ = &srcPt[TILEMAP_WIDTH];
+							*spNext++ = &srcPt[1+TILEMAP_WIDTH];
+							*spNext++ = &srcPt[1];
+							*spNext++ = &srcPt[0];
+							++numQuads;
+						}
+						if (i > 0) {
+						}
 					}
 				}
+				srcPt++;
 				dst->numQuads = numQuads;
-
-				spNext++;
+				dst++;
 				src++;
 			}
-			spNext++;
-			src++;
 		}
-		spNext += TILEMAP_WIDTH;
-		src += TILEMAP_WIDTH;
 	}
 }
 
@@ -273,7 +271,7 @@ static void updateTilemapEdges(Vec3 *pos, uint8 layer)
 	tmapGridInfo.tileStep = (TILE_SIZE << (SCR_BITS + PROJ_BITS)) / layerZ;
 }
 
-static void renderTilemap3DLayerMesh(uint8 layer, uint8 color, uint8 *vram)
+static void renderTilemap3DLayerMesh(uint8 layer, uint8 *vram)
 {
 	const int tileRowOffset = layer * TILEMAP_LAYER_SIZE + tmapGridInfo.y0 * TILEMAP_WIDTH;
 	ScreenPoint *sp = &tileScrPt[tileRowOffset];
@@ -308,7 +306,7 @@ static void renderTilemap3DLayerMesh(uint8 layer, uint8 color, uint8 *vram)
 			if (numQuads != 0) {
 				ScreenPoint **spQuad = tmi[x].spStart;
 				for (int n=0; n<numQuads; ++n) {
-					drawQuad(spQuad, color, vram);
+					drawQuad(spQuad, 2*(n+layer), vram);
 					spQuad += 4;
 				}
 			}
@@ -407,7 +405,7 @@ void renderTilemap3dLayer(Vec3 *pos, uint8 layer, Screen *screen)
 		break;
 
 		case TILE_RENDER_MESH:
-			renderTilemap3DLayerMesh(layer, color, vram);
+			renderTilemap3DLayerMesh(layer, vram);
 		break;
 	}
 }
