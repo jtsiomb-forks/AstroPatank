@@ -338,7 +338,8 @@ static void updateTilemapEdges(Vec3 *pos, uint8 layer)
 	tmapGridInfo.ys0 = ((-pos->y + tmapGridInfo.y0 * TILE_SIZE) << (SCR_BITS + PROJ_BITS)) / layerZ + ((SCR_H / 2) << SCR_BITS);
 	tmapGridInfo.tileStep = (TILE_SIZE << (SCR_BITS + PROJ_BITS)) / layerZ;
 }
-
+//116,878
+//124,890
 static bool checkFaceOrder(ScreenPoint *p[])
 {
 	int x0 = p[0]->x;
@@ -348,7 +349,7 @@ static bool checkFaceOrder(ScreenPoint *p[])
 	int x2 = p[2]->x;
 	int y2 = p[2]->y;
 
-	long long int faceOrder = (long long int)(x0 - x1) * (long long int)(y2 - y1) - (long long int)(x2 - x1) * (long long int)(y0 - y1);
+	int faceOrder = (x0 - x1) * (y2 - y1) - (x2 - x1) * (y0 - y1);
 
 	return faceOrder >= 0;
 }
@@ -390,6 +391,7 @@ static void renderTilemap3DLayerMesh(uint8 layer, uint8 *vram)
 				ScreenPoint **spQuad = tmi[x].spStartX;
 				for (int n=0; n<numQuads; ++n) {
 					if (checkFaceOrder(spQuad)) {
+					//if (spQuad[0]->x < spQuad[1]->x) {
 						drawQuad(spQuad, color + 2 * n, vram);
 					}
 					spQuad+=4;
@@ -408,6 +410,7 @@ static void renderTilemap3DLayerMesh(uint8 layer, uint8 *vram)
 				ScreenPoint **spQuad = tmi[x].spStartY;
 				for (int n=0; n<numQuads; ++n) {
 					if (checkFaceOrder(spQuad)) {
+					//if (spQuad[0]->y < spQuad[1]->y) {
 						drawQuad(spQuad, color + 2 * n, vram);
 					}
 					spQuad+=4;
