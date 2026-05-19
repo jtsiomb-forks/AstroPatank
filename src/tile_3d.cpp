@@ -29,14 +29,6 @@ typedef struct TilemapGridInfo
 	int tileStep;
 } TilemapGridInfo;
 
-/*typedef struct TileMeshInfo
-{
-	int numQuadsX, numQuadsY, numQuadsZ;
-	ScreenPoint **spStartX;
-	ScreenPoint **spStartY;
-	ScreenPoint **spStartZ;
-} TileMeshInfo;*/
-
 
 static uint8 tilemap3d[TILEMAP_SIZE];
 static TilemapGridInfo tmapGridInfo;
@@ -44,19 +36,9 @@ static TilemapGridInfo tmapGridInfo;
 static int tileRenderType = TILE_RENDER_DOTS;
 
 static ScreenPoint tileScrPt[TILEMAP_SIZE];
-//static TileMeshInfo tileMeshInfo[TILEMAP_SIZE];
 static ScreenPoint **tileMeshScreenPointPtr[TILEMAP_SIZE];
 static ScreenPoint *scrPlist[TILEMAP_SIZE * (4 / 2) * 6];		// good theoritical maximum? Will reduce..
 static ScreenPoint **spNext = scrPlist;
-
-// scrPlist 4 ScreenPoint* per quad point at &tileScrPtr[n]
-// tileMeshInfo per tile, tells you number of quads (can be 0 to 6 (but 5 max in our case as the bottom is always out of view)), then pointer to scrPlist start of the sequence of points
-
-//New tileMeshInfo[numQuads, spNext]
-//==================================
-//spStart = spNext
-//From tile look 6 directions, inc numQuads each time
-//add four ScreenPoint* to *spNext = sp0/1/2/3
 
 
 uint8* getTilemap3D()
@@ -418,8 +400,8 @@ static void renderTilemap3DLayerMesh(uint8 layer, uint8 *vram)
 				#ifndef GOOD_SIDES_PRIORITY
 					color+=2; spQuad+=4;
 					if (spQuad[0]) {
-						//drawQuad(spQuad, color, vram);
-						drawRectangle(spQuad[3]->x, spQuad[3]->y, spQuad[1]->x, spQuad[1]->y, color, vram);
+						drawQuad(spQuad, color, vram);
+						//drawRectangle(spQuad[3]->x, spQuad[3]->y, spQuad[1]->x, spQuad[1]->y, color, vram);
 					}
 				#endif
 			}
@@ -436,8 +418,8 @@ static void renderTilemap3DLayerMesh(uint8 layer, uint8 *vram)
 				ScreenPoint **spQuad = tileMeshSpPtr[x];
 				if (spQuad) {
 					if (spQuad[16]) {
-						//drawQuad(&spQuad[16], colStart, vram);
-						drawRectangle(spQuad[16+3]->x, spQuad[16+3]->y, spQuad[16+1]->x, spQuad[16+1]->y, colStart, vram);
+						drawQuad(&spQuad[16], colStart, vram);
+						//drawRectangle(spQuad[16+3]->x, spQuad[16+3]->y, spQuad[16+1]->x, spQuad[16+1]->y, colStart, vram);
 					}
 				}
 			}
