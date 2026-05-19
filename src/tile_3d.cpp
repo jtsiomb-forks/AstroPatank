@@ -418,7 +418,8 @@ static void renderTilemap3DLayerMesh(uint8 layer, uint8 *vram)
 				#ifndef GOOD_SIDES_PRIORITY
 					color+=2; spQuad+=4;
 					if (spQuad[0]) {
-						drawQuad(spQuad, color, vram);
+						//drawQuad(spQuad, color, vram);
+						drawRectangle(spQuad[3]->x, spQuad[3]->y, spQuad[1]->x, spQuad[1]->y, color, vram);
 					}
 				#endif
 			}
@@ -435,7 +436,8 @@ static void renderTilemap3DLayerMesh(uint8 layer, uint8 *vram)
 				ScreenPoint **spQuad = tileMeshSpPtr[x];
 				if (spQuad) {
 					if (spQuad[16]) {
-						drawQuad(&spQuad[16], colStart, vram);
+						//drawQuad(&spQuad[16], colStart, vram);
+						drawRectangle(spQuad[16+3]->x, spQuad[16+3]->y, spQuad[16+1]->x, spQuad[16+1]->y, colStart, vram);
 					}
 				}
 			}
