@@ -41,6 +41,13 @@ static ScreenPoint *scrPlist[TILEMAP_SIZE * (4 / 2) * 6];		// good theoritical m
 static ScreenPoint **spNext = scrPlist;
 
 
+#define FILL_SHAPES_ASM
+
+extern "C" {
+	void drawRectangleAsm(ScreenPoint *p0, ScreenPoint *p1, uint8 color, uint8 *vram);
+}
+
+
 uint8* getTilemap3D()
 {
 	return tilemap3d;
@@ -247,12 +254,12 @@ static void drawRectangleLines(int x0, int y0, int x1, int y1, uint8 color, uint
 	}
 }
 
-static void drawRectangle(int x0, int y0, int x1, int y1, uint8 color, uint8 *vram)
+static void drawRectangle(ScreenPoint *p0, ScreenPoint *p1, uint8 color, uint8 *vram)
 {
-	x0 >>= SCR_BITS;
-	y0 >>= SCR_BITS;
-	x1 >>= SCR_BITS;
-	y1 >>= SCR_BITS;
+	int x0 = p0->x >> SCR_BITS;
+	int y0 = p0->y >> SCR_BITS;
+	int x1 = p1->x >> SCR_BITS;
+	int y1 = p1->y >> SCR_BITS;
 
 	CLAMP(x0,0,SCR_W-1);
 	CLAMP(x1,0,SCR_W-1);
@@ -336,8 +343,9 @@ static void updateTilemapEdges(Vec3 *pos, uint8 layer)
 	tmapGridInfo.tileStep = (TILE_SIZE << (SCR_BITS + PROJ_BITS)) / layerZ;
 }
 
-//180,931
-//155,919
+// 190,1027
+// 180,931
+// 155,919
 
 #define GOOD_SIDES_PRIORITY
 
@@ -400,8 +408,12 @@ static void renderTilemap3DLayerMesh(uint8 layer, uint8 *vram)
 				#ifndef GOOD_SIDES_PRIORITY
 					color+=2; spQuad+=4;
 					if (spQuad[0]) {
-						drawQuad(spQuad, color, vram);
-						//drawRectangle(spQuad[3]->x, spQuad[3]->y, spQuad[1]->x, spQuad[1]->y, color, vram);
+						//drawQuad(spQuad, color, vram);
+						#ifdef FILL_SHAPES_ASM
+							drawRectangleAsm(spQuad[3], spQuad[1], color, vram);
+						#else
+							drawRectangle(spQuad[3], spQuad[1], color, vram);
+						#endif
 					}
 				#endif
 			}
@@ -418,8 +430,12 @@ static void renderTilemap3DLayerMesh(uint8 layer, uint8 *vram)
 				ScreenPoint **spQuad = tileMeshSpPtr[x];
 				if (spQuad) {
 					if (spQuad[16]) {
-						drawQuad(&spQuad[16], colStart, vram);
-						//drawRectangle(spQuad[16+3]->x, spQuad[16+3]->y, spQuad[16+1]->x, spQuad[16+1]->y, colStart, vram);
+						//drawQuad(&spQuad[16], colStart, vram);
+						#ifdef FILL_SHAPES_ASM
+							drawRectangleAsm(spQuad[16+3], spQuad[16+1], colStart, vram);
+						#else
+							drawRectangle(spQuad[16+3], spQuad[16+1], colStart, vram);
+						#endif
 					}
 				}
 			}
@@ -441,7 +457,14 @@ static void renderTilemap3dLayerQuads(uint8 color, uint8 *tmap, uint8 *vram)
 		int xs = tmapGridInfo.xs0;
 		for (int x=x0; x<x1; ++x) {
 			if (tmap[x]) {
-				drawRectangle(xs,ys, xs+step, ys+step, color, vram);
+				ScreenPoint p0, p1;
+				p0.x = xs; p1.x = xs+step;
+				p0.y = ys; p1.y = ys+step;
+				#ifdef FILL_SHAPES_ASM
+					drawRectangleAsm(&p0, &p1, color, vram);
+				#else
+					drawRectangle(&p0, &p1, color, vram);
+				#endif
 			}
 			xs += step;
 		}

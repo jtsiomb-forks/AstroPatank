@@ -39,9 +39,10 @@ fillScanlinesAsm_:
 		mov ebp,[_yScanlineMax]
 		sub ebp,ebx			; store yScanlineMax - yScanlineMin in EBP
 
-		test ebp,ebp
-		js aman
-		jz aman
+		;test ebp,ebp
+		;js aman
+		;jz aman
+		jng aman
 
 		lea esi,[_scanline + SCANLINE_STRUCT_SIZE * ebx]
 

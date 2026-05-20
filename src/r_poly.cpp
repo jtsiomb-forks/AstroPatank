@@ -334,15 +334,13 @@ void drawQuad(ScreenPoint *p[], uint8 color, uint8 *vram)
 	prepareEdgeScanlinesFlat(p[2],p[3]);
 	prepareEdgeScanlinesFlat(p[3],p[0]);
 
-	uint8 col = color;//((color&7)<<4)+15;
-
 #ifdef FILL_SCANLINES_ASM
-	fillScanlinesAsm(col, vram);
+	fillScanlinesAsm(color, vram);
 #else
 	#ifdef SCR_UNCHAINED
-		fillScanlinesUnchained(col, vram);
+		fillScanlinesUnchained(color, vram);
 	#else
-		fillScanlines(col, vram);
+		fillScanlines(color, vram);
 	#endif
 #endif
 }
