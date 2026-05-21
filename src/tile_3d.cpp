@@ -343,6 +343,7 @@ static void updateTilemapEdges(Vec3 *pos, uint8 layer)
 	tmapGridInfo.tileStep = (TILE_SIZE << (SCR_BITS + PROJ_BITS)) / layerZ;
 }
 
+// 1075,195
 // 1038,192
 // 1027,190
 // 931,180

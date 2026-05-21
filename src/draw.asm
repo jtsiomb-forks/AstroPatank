@@ -127,44 +127,40 @@ drawRectangleAsm_:
 
 longerRectRenderPath:
 
+		and dl,3
+		mov dh,4
+		sub dh,dl
+		mov [cs:bSizeLeftAutoM+1],dh
+
+		movzx dx,dh
+		sub cx,dx
+		mov dx,cx
+		shr cx,2
+		mov [cs:dSizeCenterAutoM+2],cx
+
+		and dl,3
+		mov [cs:bSizeRightAutoM+1],dl
+
 		scanlineLoopY:
-			push edx	; will see if we can avoid it
+			bSizeLeftAutoM:
+			mov cl,0
+			rep stosb
 
-			and dl,3	; Let's see left side if we need to write bytes
-			jz noLeftPixels
-				mov dh,4
-				sub dh,dl
-				mov dl,dh
-				pixL:
-					stosb
-					dec dh
-				jnz pixL
-				sub cx,dx
-			noLeftPixels:
+			dSizeCenterAutoM:
+			mov cx,0
+			rep stosd
 
-			test cx,cx
-			js afterRenderScanline
-			mov dx,cx
-			cmp cx,3
-			jc noThickPixels
-				shr cx,2
-				rep stosd
-			noThickPixels:
-
-			and dl,3
-			jz afterRenderScanline
-				mov cl,dl
-				rep stosb
+			bSizeRightAutoM:
+			mov cl,0
+			rep stosb
 
 			afterRenderScanline:
 			add ebp,SCR_BYTE_LENGTH
 			mov edi,ebp	; get back vram
-			mov ecx,ebx	; get back lengthX
-
-			pop edx	; restore for now
 
 			dec esi
 		jnz scanlineLoopY
+
 aman:
 
 	popa
