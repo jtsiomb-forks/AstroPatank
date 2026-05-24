@@ -30,7 +30,7 @@ static int8 *objMeshData[NUM_OBJECTS] = {	objQuadData, objTripodData, objPyramid
 static Mesh *objectMesh[NUM_OBJECTS];
 
 static int renderMethod = RENDER_POLYS;
-static int objectMeshIndex = 9;
+static int objectMeshIndex = 10;
 
 static Vec3 playerPos;
 static int playerMoveSpeed = 1;
@@ -38,8 +38,7 @@ static int playerZoomSpeed = 32;
 
 static void script3D(Mesh *ms, int t)
 {
-	static int runAndStop = 0;
-	static int rx = 0;
+	static int rx = 1024;
 	static int ry = 0;
 	static int rz = 0;
 
@@ -52,28 +51,14 @@ static void script3D(Mesh *ms, int t)
 	ms->pos.y = 0;
 	ms->pos.z = playerPos.z;
 
-	if (runAndStop < 96) {
-		rx += 8;
-		ry += 12;
-		//rz -= 18;
-		//runAndStop++;
-	}
-
-	/*t >>= 2;
-	rx = t;
-	ry = 2*t;
-	rz = 3*t;*/
-
-	//playerPos.x = (TILEMAP_WIDTH / 2) * TILE_SIZE + sin((float)t / 2150.0f) * (4 * TILE_SIZE);
-	//playerPos.y = (TILEMAP_HEIGHT / 2) * TILE_SIZE + sin((float)t / 1610.0f) * (3 * TILE_SIZE);
-	//playerPos.z = 1024;
+	//ry -= 16;
 
 	ms->renderMode = renderMethod;
 }
 
 static bool checkPlayerCollision(uint8 *tmap)
 {
-	const int playerSize = TILE_SIZE / 4;
+	const int playerSize = TILE_SIZE / 6;
 	int tx0 = (playerPos.x - playerSize) / TILE_SIZE;
 	int ty0 = (playerPos.y - playerSize) / TILE_SIZE;
 	int tx1 = (playerPos.x + playerSize) / TILE_SIZE;
@@ -135,7 +120,7 @@ static void input3D(int dt)
 
 
 	if (buttonsHeld.zoomIn) {
-		if (playerPos.z > 512) {
+		if (playerPos.z > 2048) {
 			playerPos.z -= playerZoomSpeed;
 		}
 	}
@@ -219,7 +204,7 @@ void fx3dInit(bool onlySetup)
 
 	playerPos.x = (TILEMAP_WIDTH / 2) * TILE_SIZE - 3*TILE_SIZE;
 	playerPos.y = (TILEMAP_HEIGHT / 2) * TILE_SIZE - 2*TILE_SIZE;
-	playerPos.z = 1024;
+	playerPos.z = 6144;
 
 	tilemap3dInit();
 

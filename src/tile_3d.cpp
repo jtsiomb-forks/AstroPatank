@@ -169,7 +169,7 @@ static void loadMapTest()
 static void genMapFloor()
 {
 	uint8 *dst = tilemap3d;
-	uint8 n = 2;
+	uint8 n = 3;
 	for (int y=0; y<TILEMAP_HEIGHT; ++y) {
 		for (int x=0; x<TILEMAP_WIDTH; ++x) {
 			uint8 c = 0;
@@ -365,7 +365,7 @@ static void findTilemapExtends(int posI, int iRange, int edgeI, int *tmapI0, int
 
 static void updateTilemapEdges(Vec3 *pos, uint8 layer)
 {
-	int layerZ = pos->z + TILE_SIZE * (TILEMAP_LAYERS - layer);
+	int layerZ = pos->z - TILE_SIZE * layer;
 	int edgeZ = layerZ;
 	if (layer > 0) {
 		edgeZ += TILE_SIZE;

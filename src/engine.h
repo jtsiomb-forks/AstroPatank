@@ -5,6 +5,8 @@
 #include "demo.h"
 #include "mesh.h"
 
+#define Z_NEAR 32
+
 #define MAX_VERTEX_POINTS 4096
 #define MAX_POLYS 1024
 
