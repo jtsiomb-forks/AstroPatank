@@ -33,7 +33,7 @@ static int renderMethod = RENDER_POLYS;
 static int objectMeshIndex = 10;
 
 static Vec3 playerPos;
-static int playerMoveSpeed = 1;
+static int playerMoveSpeed = 2;
 static int playerZoomSpeed = 32;
 
 static void script3D(Mesh *ms, int t)
@@ -204,7 +204,7 @@ void fx3dInit(bool onlySetup)
 
 	playerPos.x = (TILEMAP_WIDTH / 2) * TILE_SIZE - 3*TILE_SIZE;
 	playerPos.y = (TILEMAP_HEIGHT / 2) * TILE_SIZE - 2*TILE_SIZE;
-	playerPos.z = 6144;
+	playerPos.z = 2048+1024;
 
 	tilemap3dInit();
 

@@ -36,7 +36,7 @@ static TilemapGridInfo tmapGridInfo;
 
 static int tileRenderType = TILE_RENDER_DOTS;
 
-static ScreenPoint tileScrPt[TILEMAP_SIZE];
+static ScreenPoint tileScrPt[TILEMAP_POINTS_SIZE];
 static ScreenPoint **tileMeshScreenPointPtr[TILEMAP_SIZE];
 static ScreenPoint *scrPlist[TILEMAP_SIZE * (4 / 2) * 6];		// good theoritical maximum? Will reduce..
 static ScreenPoint **spNext = scrPlist;
@@ -64,77 +64,77 @@ static void buildTilemapMesh()
 		for (int y=0; y<TILEMAP_HEIGHT; ++y) {
 			for (int x=0; x<TILEMAP_WIDTH; ++x) {
 				*dst = NULL; // if it finds zero quads later, NULL to know to skip
-				if (x<TILEMAP_WIDTH-1 && y<TILEMAP_HEIGHT-1) {
-					uint8 c = *src;
-					if (c != 0) {
-						*dst = spNext;
-						if (i > 0) {
-							if (x==0 || *(src - 1)==0) {
-								spNext[0] = &srcPt[0];
-								spNext[1] = &srcPt[-TILEMAP_LAYER_SIZE];
-								spNext[2] = &srcPt[-TILEMAP_LAYER_SIZE+TILEMAP_WIDTH];
-								spNext[3] = &srcPt[TILEMAP_WIDTH];
-							} else {
-								spNext[0] = NULL;
-							}
-							spNext += 4;
-
-							if (*(src + 1)==0) {
-								spNext[0] = &srcPt[1+TILEMAP_WIDTH];
-								spNext[1] = &srcPt[-TILEMAP_LAYER_SIZE+1+TILEMAP_WIDTH];
-								spNext[2] = &srcPt[-TILEMAP_LAYER_SIZE+1];
-								spNext[3] = &srcPt[1];
-							} else {
-								spNext[0] = NULL;
-							}
-							spNext += 4;
-
-							if (y==0 || *(src - TILEMAP_WIDTH)==0) {
-								spNext[0] = &srcPt[1];
-								spNext[1] = &srcPt[-TILEMAP_LAYER_SIZE+1];
-								spNext[2] = &srcPt[-TILEMAP_LAYER_SIZE];
-								spNext[3] = &srcPt[0];
-							} else {
-								spNext[0] = NULL;
-							}
-							spNext += 4;
-
-							if (*(src + TILEMAP_WIDTH)==0) {
-								spNext[0] = &srcPt[TILEMAP_WIDTH];
-								spNext[1] = &srcPt[-TILEMAP_LAYER_SIZE+TILEMAP_WIDTH];
-								spNext[2] = &srcPt[-TILEMAP_LAYER_SIZE+TILEMAP_WIDTH+1];
-								spNext[3] = &srcPt[TILEMAP_WIDTH+1];
-							}
-							else {
-								spNext[0] = NULL;
-							}
-							spNext += 4;
+				uint8 c = *src;
+				if (c != 0) {
+					*dst = spNext;
+					if (i > 0) {
+						if (x==0 || *(src - 1)==0) {
+							spNext[0] = &srcPt[0];
+							spNext[1] = &srcPt[-TILEMAP_POINTS_LAYER_SIZE];
+							spNext[2] = &srcPt[-TILEMAP_POINTS_LAYER_SIZE+TILEMAP_POINTS_W];
+							spNext[3] = &srcPt[TILEMAP_POINTS_W];
 						} else {
-							spNext[0] = NULL; spNext += 4;
-							spNext[0] = NULL; spNext += 4;
-							spNext[0] = NULL; spNext += 4;
-							spNext[0] = NULL; spNext += 4;
+							spNext[0] = NULL;
 						}
+						spNext += 4;
 
-						if (i==TILEMAP_LAYERS-1 || *(src + TILEMAP_LAYER_SIZE)==0) {
-							spNext[0] = &srcPt[TILEMAP_WIDTH];
-							spNext[1] = &srcPt[1+TILEMAP_WIDTH];
-							spNext[2] = &srcPt[1];
+						if (*(src + 1)==0) {
+							spNext[0] = &srcPt[1+TILEMAP_POINTS_W];
+							spNext[1] = &srcPt[-TILEMAP_POINTS_LAYER_SIZE+1+TILEMAP_POINTS_W];
+							spNext[2] = &srcPt[-TILEMAP_POINTS_LAYER_SIZE+1];
+							spNext[3] = &srcPt[1];
+						} else {
+							spNext[0] = NULL;
+						}
+						spNext += 4;
+
+						if (y==0 || *(src - TILEMAP_WIDTH)==0) {
+							spNext[0] = &srcPt[1];
+							spNext[1] = &srcPt[-TILEMAP_POINTS_LAYER_SIZE+1];
+							spNext[2] = &srcPt[-TILEMAP_POINTS_LAYER_SIZE];
 							spNext[3] = &srcPt[0];
 						} else {
 							spNext[0] = NULL;
 						}
 						spNext += 4;
 
-						spNext[0] = NULL;
+						if (*(src + TILEMAP_WIDTH)==0) {
+							spNext[0] = &srcPt[TILEMAP_POINTS_W];
+							spNext[1] = &srcPt[-TILEMAP_POINTS_LAYER_SIZE+TILEMAP_POINTS_W];
+							spNext[2] = &srcPt[-TILEMAP_POINTS_LAYER_SIZE+TILEMAP_POINTS_W+1];
+							spNext[3] = &srcPt[TILEMAP_POINTS_W+1];
+						}
+						else {
+							spNext[0] = NULL;
+						}
 						spNext += 4;
+					} else {
+						spNext[0] = NULL; spNext += 4;
+						spNext[0] = NULL; spNext += 4;
+						spNext[0] = NULL; spNext += 4;
+						spNext[0] = NULL; spNext += 4;
 					}
+
+					if (i==TILEMAP_LAYERS-1 || *(src + TILEMAP_LAYER_SIZE)==0) {
+						spNext[0] = &srcPt[TILEMAP_POINTS_W];
+						spNext[1] = &srcPt[1+TILEMAP_POINTS_W];
+						spNext[2] = &srcPt[1];
+						spNext[3] = &srcPt[0];
+					} else {
+						spNext[0] = NULL;
+					}
+					spNext += 4;
+
+					spNext[0] = NULL;
+					spNext += 4;
 				}
 				srcPt++;
 				dst++;
 				src++;
 			}
+			srcPt++;
 		}
+		srcPt += TILEMAP_POINTS_W;
 	}
 }
 
@@ -365,10 +365,10 @@ static void findTilemapExtends(int posI, int iRange, int edgeI, int *tmapI0, int
 
 static void updateTilemapEdges(Vec3 *pos, uint8 layer)
 {
-	int layerZ = pos->z - TILE_SIZE * layer;
+	int layerZ = pos->z - TILE_HEIGHT * layer;
 	int edgeZ = layerZ;
 	if (layer > 0) {
-		edgeZ += TILE_SIZE;
+		edgeZ += TILE_HEIGHT;
 	}
 	int edgeX = (SCR_W/2 * edgeZ) >> PROJ_BITS;
 	int edgeY = (SCR_H/2 * edgeZ) >> PROJ_BITS;
@@ -389,35 +389,30 @@ static void updateTilemapEdges(Vec3 *pos, uint8 layer)
 
 static void renderTilemap3DLayerMesh(uint8 layer, uint8 *vram)
 {
-	const int tileRowOffset = layer * TILEMAP_LAYER_SIZE + tmapGridInfo.y0 * TILEMAP_WIDTH;
-	ScreenPoint *tileSp = &tileScrPt[tileRowOffset];
+	ScreenPoint *tileSp = &tileScrPt[layer * TILEMAP_POINTS_LAYER_SIZE + tmapGridInfo.y0 * TILEMAP_POINTS_W];
 
 	int x0 = tmapGridInfo.x0;
 	int y0 = tmapGridInfo.y0;
 	int x1 = tmapGridInfo.x1;
 	int y1 = tmapGridInfo.y1;
 
-	int x1b = x1;
-	int y1b = y1;
-	if (x1 < TILEMAP_WIDTH-1) ++x1b;
-	if (y1 < TILEMAP_HEIGHT-1) ++y1b;
-
 	int step = tmapGridInfo.tileStep;
 	int ys = tmapGridInfo.ys0;
-	for (int y=y0; y<y1b; ++y) {
+	for (int y=y0; y<=y1; ++y) {
 		int xs = tmapGridInfo.xs0;
-		for (int x=x0; x<x1b; ++x) {
+		for (int x=x0; x<=x1; ++x) {
 			tileSp[x].x = xs;
 			tileSp[x].y = ys;
 			xs += step;
 		}
 		ys += step;
-		tileSp += TILEMAP_WIDTH;
+		tileSp += TILEMAP_POINTS_W;
 	}
 
 	uint8 colStart = ((layer+1) * 16) / TILEMAP_LAYERS;
 	if (colStart > 15) colStart = 15;
 
+	const int tileRowOffset = layer * TILEMAP_LAYER_SIZE + tmapGridInfo.y0 * TILEMAP_WIDTH;
 	ScreenPoint ***tileMeshSpPtr = &tileMeshScreenPointPtr[tileRowOffset];
 	uint8 *tmap = &tilemap3d[tileRowOffset];
 	for (int y=y0; y<y1; ++y) {
