@@ -33,25 +33,21 @@ static int renderMethod = RENDER_POLYS;
 static int objectMeshIndex = 10;
 
 static Vec3 playerPos;
+static int playerAngle = 0;
 static int playerMoveSpeed = 2;
+static int playerAngleSpeed = 32;
 static int playerZoomSpeed = 32;
 
 static void script3D(Mesh *ms, int t)
 {
-	static int rx = 1024;
-	static int ry = 0;
-	static int rz = 0;
-
 	Vec3 *rot = &ms->rot;
-	rot->x = rx << 0;
-    rot->y = ry << 0;
-    rot->z = rz << 0;
+	rot->x = 1024;
+    rot->y = playerAngle;
+    rot->z = 0;
 
 	ms->pos.x = 0;
 	ms->pos.y = 0;
 	ms->pos.z = playerPos.z;
-
-	//ry -= 16;
 
 	ms->renderMode = renderMethod;
 }
@@ -88,35 +84,39 @@ static void input3D(int dt)
 	int prevPlayerPosY = playerPos.y;
 
 
-	//int tMov = 16 << PPOS_BITS;
+
 	int tMov = ((dt*playerMoveSpeed) << PPOS_BITS);
 
-	//int tMov = 16 << PPOS_BITS;
+
 
 	int pposX = playerPos.x << PPOS_BITS;
 	int pposY = playerPos.y << PPOS_BITS;
 
 	if (buttonsHeld.left) {
-		pposX -= tMov;
+		playerAngle += playerAngleSpeed;
 	}
 	if (buttonsHeld.right) {
-		pposX += tMov;
+		playerAngle -= playerAngleSpeed;
 	}
-	playerPos.x = pposX >> PPOS_BITS;
 
+	int tMovY = (tMov * sinTab[(playerAngle + (SINTAB_SIZE / 4)) & (SINTAB_SIZE - 1)]) >> AMPLITUDE_BITS;
+	int tMovX = (tMov * sinTab[playerAngle & (SINTAB_SIZE - 1)]) >> AMPLITUDE_BITS;
+
+	if (buttonsHeld.up) {
+		pposX -= tMovX;
+		pposY -= tMovY;
+	}
+	if (buttonsHeld.down) {
+		pposX += tMovX;
+		pposY += tMovY;
+	}
+
+	playerPos.x = pposX >> PPOS_BITS;
 	if (checkPlayerCollision(tmap)) {
 		playerPos.x = prevPlayerPosX;
 	}
 
-
-	if (buttonsHeld.up) {
-		pposY -= tMov;
-	}
-	if (buttonsHeld.down) {
-		pposY += tMov;
-	}
 	playerPos.y = pposY >> PPOS_BITS;
-
 	if (checkPlayerCollision(tmap)) {
 		playerPos.y = prevPlayerPosY;
 	}

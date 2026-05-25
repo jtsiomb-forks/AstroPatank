@@ -25,6 +25,12 @@
 #define SHADE_AND AND_BITS(SHADE_BITS)
 
 
+#define ANGLE_BITS 12
+#define SINTAB_SIZE (1 << ANGLE_BITS)
+#define AMPLITUDE_BITS 12
+#define SINTAB_AMPLITUDE (1 << AMPLITUDE_BITS)
+
+
 enum {
 	RENDER_DOTS,
 	RENDER_LINES,
@@ -37,6 +43,8 @@ typedef struct ScreenPoint
 	int x,y,z;
 } ScreenPoint;
 
+
+extern int sinTab[SINTAB_SIZE];
 
 void initEngine();
 void renderMesh(Mesh *ms, Screen *screen);

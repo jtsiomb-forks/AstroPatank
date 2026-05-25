@@ -105,7 +105,7 @@ uint	MPU401Port = MPU401PORT;
 const char *searchPath[8] = {"", NULL};
 
 /* Command-line parameters */
-char   *musname = "D_E1M1.mus";
+char   *musname = "TEST.mus";
 char   *userbankname = NULL;
 uint	help = 0;
 //char   *execCmd = NULL;

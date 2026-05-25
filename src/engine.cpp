@@ -13,12 +13,7 @@
 #define NUM_POINTS_GRID_HALF 128
 #define NUM_POINTS_AXIS (2*NUM_POINTS_GRID_HALF+1)
 
-#define ANGLE_BITS 12
-#define SINTAB_SIZE (1 << ANGLE_BITS)
-#define AMPLITUDE_BITS 12
-#define SINTAB_AMPLITUDE (1 << AMPLITUDE_BITS)
-
-static int sinTab[SINTAB_SIZE];
+int sinTab[SINTAB_SIZE];
 
 static int rotMat[9];
 
@@ -46,7 +41,6 @@ typedef struct ZBucket
 
 ZBucket zBucket[Z_BUCKETS_NUM];
 static int zBucketIndexMin, zBucketIndexMax;
-
 
 static void calcRotMatrix(Vec3 *rot)
 {
