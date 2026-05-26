@@ -10,6 +10,8 @@
 
 #include "mathutil.h"
 
+#define NUM_SOFT_BUFFERS 2
+
 static uint8 *VGAptr = (uint8*)0xA0000;
 static uint8 *TXTptr = (uint8*)0xB8000;
 
@@ -120,7 +122,7 @@ Video *setVideoMode(uint16 width, uint16 height, uint8 bpp, bool needsBuffer, bo
 		if (vm->width==width && vm->height==height && vm->bpp==bpp && vm->unchained==unchained) {
 			if (needsBuffer) {
 				if (vm->buffer!=0) free(vm->buffer);
-				vm->buffer = (uint8*)malloc(((width * height * bpp) >> 3) * sizeof(uint8));
+				vm->buffer = (uint8*)malloc(((width * height * bpp) >> 3) * NUM_SOFT_BUFFERS);
 			}
 			if (vm->vesa) {
 				setVesaMode(vm->mode);
@@ -197,8 +199,9 @@ void updateFrame(Video *vm, bool vsync)
 	if (vm->vesa) {
 		copyBufferToSvga(vm);
 	} else {
-		const uint32 size = vm->width * vm->height;
-		memcpy(vm->vram, vm->buffer, size);
+		const uint32 size = (vm->width * vm->height * vm->bpp) >> 3;
+		memcpy(vm->vram, &vm->buffer[vramPage * size], size);
+		vramPage = (vramPage + 1) % NUM_SOFT_BUFFERS;
 	}
 }
 
@@ -210,7 +213,8 @@ uint8 *getRenderBuffer(Video *vm)
 	if (vm->buffer==0) {
 		return vm->vram;
 	} else {
-		return vm->buffer;
+		const uint32 size = (vm->width * vm->height * vm->bpp) >> 3;
+		return &vm->buffer[vramPage * size];
 	}
 }
 

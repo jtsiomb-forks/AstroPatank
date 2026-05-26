@@ -3,7 +3,7 @@
 
 #include "types.h"
 #include "video.h"
-#include "demo.h"
+#include "game.h"
 
 //#define TIME_FREQ 18.2f
 #define TIME_FREQ 1000.0f

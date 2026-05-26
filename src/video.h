@@ -2,7 +2,7 @@
 #define VIDEO_H
 
 #include "types.h"
-#include "demo.h"
+#include "game.h"
 
 #define VGA_WIDTH 320
 #define VGA_HEIGHT 200

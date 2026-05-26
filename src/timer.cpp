@@ -6,7 +6,7 @@
 #include <stdlib.h>
 
 #include "tinyfont.h"
-#include "demo.h"
+#include "game.h"
 #include "musplay.h"
 #include "types.h"
 

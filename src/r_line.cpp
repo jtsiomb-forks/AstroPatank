@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "demo.h"
+#include "game.h"
 #include "engine.h"
 #include "mathutil.h"
 

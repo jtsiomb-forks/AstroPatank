@@ -2,7 +2,7 @@
 #define RENDER_H
 
 #include "types.h"
-#include "demo.h"
+#include "game.h"
 #include "engine.h"
 #include "vector.h"
 

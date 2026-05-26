@@ -2,7 +2,7 @@
 #define TILE_3D_H
 
 #include "types.h"
-#include "demo.h"
+#include "game.h"
 #include "vector.h"
 
 #define TILE_SIZE_BITS 8

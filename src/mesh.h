@@ -2,7 +2,7 @@
 #define MESH_H
 
 #include "types.h"
-#include "demo.h"
+#include "game.h"
 #include "vector.h"
 
 typedef struct Mesh

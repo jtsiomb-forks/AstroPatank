@@ -2,7 +2,7 @@
 #define ENGINE_H
 
 #include "types.h"
-#include "demo.h"
+#include "game.h"
 #include "mesh.h"
 
 #define Z_NEAR 32

@@ -8,10 +8,13 @@
 #include "types.h"
 #include "mathutil.h"
 
-#include "demo.h"
+#include "game.h"
 #include "tile_3d.h"
 #include "video.h"
 #include "input.h"
+#include "sound.h"
+#include "musplay.h"
+#include "mathutil.h"
 #include "vector.h"
 #include "engine.h"
 #include "render.h"
@@ -35,22 +38,11 @@ static int objectMeshIndex = 10;
 static Vec3 playerPos;
 static int playerAngle = 0;
 static int playerMoveSpeed = 2;
-static int playerAngleSpeed = 32;
-static int playerZoomSpeed = 32;
+static int playerAngleSpeed = 2;
+static int playerZoomSpeed = 4;
 
-static void script3D(Mesh *ms, int t)
-{
-	Vec3 *rot = &ms->rot;
-	rot->x = 1024;
-    rot->y = playerAngle;
-    rot->z = 0;
+static int soundDuration = 32;
 
-	ms->pos.x = 0;
-	ms->pos.y = 0;
-	ms->pos.z = playerPos.z;
-
-	ms->renderMode = renderMethod;
-}
 
 static bool checkPlayerCollision(uint8 *tmap)
 {
@@ -83,21 +75,22 @@ static void input3D(int dt)
 	int prevPlayerPosX = playerPos.x;
 	int prevPlayerPosY = playerPos.y;
 
-
-
-	int tMov = ((dt*playerMoveSpeed) << PPOS_BITS);
-
-
+	int tMov = (dt*playerMoveSpeed) << PPOS_BITS;
+	int tAng = (dt*playerAngleSpeed) << PPOS_BITS;
+	int tZoom = (dt*playerZoomSpeed) << PPOS_BITS;
 
 	int pposX = playerPos.x << PPOS_BITS;
 	int pposY = playerPos.y << PPOS_BITS;
+	int pposZ = playerPos.z << PPOS_BITS;
+	int pAngle = playerAngle << PPOS_BITS;
 
 	if (buttonsHeld.left) {
-		playerAngle += playerAngleSpeed;
+		pAngle += tAng;
 	}
 	if (buttonsHeld.right) {
-		playerAngle -= playerAngleSpeed;
+		pAngle -= tAng;
 	}
+	playerAngle = pAngle >> PPOS_BITS;
 
 	int tMovY = (tMov * sinTab[(playerAngle + (SINTAB_SIZE / 4)) & (SINTAB_SIZE - 1)]) >> AMPLITUDE_BITS;
 	int tMovX = (tMov * sinTab[playerAngle & (SINTAB_SIZE - 1)]) >> AMPLITUDE_BITS;
@@ -123,14 +116,15 @@ static void input3D(int dt)
 
 
 	if (buttonsHeld.zoomIn) {
-		if (playerPos.z > 2048) {
-			playerPos.z -= playerZoomSpeed;
+		if (pposZ > (2048 << PPOS_BITS)) {
+			pposZ -= tZoom;
 		}
 	}
 
 	if (buttonsHeld.zoomOut) {
-		playerPos.z += playerZoomSpeed;
+		pposZ += tZoom;
 	}
+	playerPos.z = pposZ >> PPOS_BITS;
 
 	if (buttonsHeld.renderPrev & !rPrevPressed) {
 		advTileRenderType(false);
@@ -173,6 +167,20 @@ static void setupPalette3D()
 	makeAndSetPal(240,255, 0,0,0, 63,63,63);
 }
 
+static void script3D(Mesh *ms, int t)
+{
+	Vec3 *rot = &ms->rot;
+	rot->x = 1024;
+    rot->y = playerAngle;
+    rot->z = 0;
+
+	ms->pos.x = 0;
+	ms->pos.y = 0;
+	ms->pos.z = playerPos.z;
+
+	ms->renderMode = renderMethod;
+}
+
 static void updateScene3D(Screen *screen, int t)
 {
 	renderTilemap3dLayer(&playerPos, 0, screen);
@@ -193,16 +201,35 @@ static void clearScreen(Screen *screen)
 	memset(screen->data, 0, screenSize);
 }
 
-void fx3dInit(bool onlySetup)
-{
-	if (!onlySetup) {
-		initEngine();
+//#define SHOW_PALETTE
 
-		for (int i=0; i<NUM_OBJECTS; ++i) {
-			objectMesh[i] = initMeshFromCPCdata(objMeshData[i]);
-			objectMesh[i]->gridScale >>= 3;
-			//reversePolygonOrder(objectMesh[i]); // Why did this work on EGA but here we shouldn't be doing it?
+static void drawPalette(uint8 *vram)
+{
+	for (int y=0; y<16; ++y) {
+		for (int x=0; x<256; ++x) {
+			*(vram + x) = x;
 		}
+		vram += SCR_LINE_BYTES;
+	}
+}
+
+static void soundRun()
+{
+	if (soundDuration-- > 0) {
+		soundTest();
+	} else {
+		stopSoundTest();
+	}
+}
+
+void gameInit()
+{
+	initEngine();
+
+	for (int i=0; i<NUM_OBJECTS; ++i) {
+		objectMesh[i] = initMeshFromCPCdata(objMeshData[i]);
+		objectMesh[i]->gridScale >>= 3;
+		//reversePolygonOrder(objectMesh[i]); // Why did this work on EGA but here we shouldn't be doing it?
 	}
 
 	playerPos.x = (TILEMAP_WIDTH / 2) * TILE_SIZE - 3*TILE_SIZE;
@@ -212,9 +239,11 @@ void fx3dInit(bool onlySetup)
 	tilemap3dInit();
 
 	setupPalette3D();
+
+	runMusPlayTest();
 }
 
-void fx3dRun(Screen *screen, int t)
+void gameRun(Screen *screen, int t)
 {
 	static int t0 = 0;
 
@@ -223,6 +252,12 @@ void fx3dRun(Screen *screen, int t)
 	input3D(t - t0);
 
 	updateScene3D(screen, t);
+
+	//soundRun();
+
+#ifdef SHOW_PALETTE
+	drawPalette((uint8*)screen->data);
+#endif
 
 	t0 = t;
 }

@@ -6,7 +6,7 @@
 
 #include "types.h"
 
-#include "demo.h"
+#include "game.h"
 #include "video.h"
 #include "timer.h"
 #include "input.h"
@@ -19,18 +19,11 @@ static Video *video;
 static Screen screen;
 static bool vsync = true;
 
-static int selectedPart = FX_3D;
-
 
 static void interpretArgument(char *arg)
 {
 	if (!strcmp(arg, "-b")) {
 		vsync = false;
-	} else {
-		char c = arg[0];
-		if (c >= '0' && c <= '9') {
-			selectedPart = c - '0';
-		}
 	}
 }
 
@@ -76,11 +69,11 @@ int main(int argc, char **argv)
 
 	initSystem();
 
-	demoInit(selectedPart);
+	gameInit();
 
 	while(!buttonsHeld.escape) {
 		screen.data = getRenderBuffer(video);
-		demoRun(&screen, getTime());
+		gameRun(&screen, getTime());
 		drawFps(video);
 		updateFrame(video, vsync);
 	}

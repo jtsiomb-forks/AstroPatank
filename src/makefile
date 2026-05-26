@@ -1,4 +1,4 @@
-obj = main.obj demo.obj video.obj timer.obj input.obj sound.obj musplay.obj tinyfont.obj mathutil.obj gfxtools.obj engine.obj r_line.obj r_poly.obj poly.obj draw.obj mesh.obj meshdata.obj fx_3d.obj tile_3d.obj map1.obj
+obj = main.obj game.obj video.obj timer.obj input.obj sound.obj musplay.obj tinyfont.obj mathutil.obj gfxtools.obj engine.obj r_line.obj r_poly.obj poly.obj draw.obj mesh.obj meshdata.obj tile_3d.obj map1.obj
 bin = demo.exe
 
 AS = nasm

@@ -1,5 +1,5 @@
-#ifndef DEMO_H
-#define DEMO_H
+#ifndef GAME_H
+#define GAME_H
 
 #include "types.h"
 
@@ -28,15 +28,7 @@ typedef struct Screen
 	void *data;
 } Screen;
 
-enum {
-	FX_3D,
-	FX_NUM
-};
-
-void fx3dInit(bool onlySetup);
-void fx3dRun(Screen *screen, int t);
-
-void demoInit(int partSelect);
-void demoRun(Screen *screen, int t);
+void gameInit();
+void gameRun(Screen *screen, int t);
 
 #endif

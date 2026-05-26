@@ -570,6 +570,8 @@ void renderTilemap3dLayer(Vec3 *pos, uint8 layer, Screen *screen)
 			renderTilemap3DLayerMesh(layer, vram);
 		break;
 	}
+
+//printf("%d ", 4 * (uint32)(spNext - scrPlist));
 }
 
 // start   : 2013, 1595, 866 (2037, 1594, 833)

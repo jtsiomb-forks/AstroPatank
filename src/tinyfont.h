@@ -6,7 +6,7 @@
 #define TINY_FONTS_NUM 10
 #define TINY_FONT_NUM_PIXELS (TINY_FONTS_NUM * TINY_FONT_WIDTH * TINY_FONT_HEIGHT)
 
-#include "demo.h"
+#include "game.h"
 #include "video.h"
 
 void initTinyFonts();
