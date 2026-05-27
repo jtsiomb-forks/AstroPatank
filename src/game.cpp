@@ -27,13 +27,21 @@
 #define NUM_OBJECTS 17
 #define PPOS_BITS 8
 
+enum {
+	OBJ_QUAD, OBJ_TRIPOD, OBJ_PYRAMID, OBJ_ROMBUS, OBJ_CUBE, 
+	OBJ_GLENZ, OBJ_UFO, OBJ_UFO2,
+	OBJ_DRUM, OBJ_CROSS,
+	OBJ_SPACESHIP,
+	OBJ_TORUS, OBJ_CUBESTAR,
+	OBJ_TEST3, OBJ_ROMBUS_RING, OBJ_TORUS2, OBJ_EIGHT_CUBES
+};
+
 static int8 *objMeshData[NUM_OBJECTS] = {	objQuadData, objTripodData, objPyramidData, objRombusData, objCubeData, objGlenzData, objUfoData, objUfo2Data, objDrumData, objSquareCrossData, 
 									objSpaceship1Data, objTorusData, objCubeStarData, objTest3Data, objRombusRingData, objTorus2Data, objEightCubesData };
 
 static Mesh *objectMesh[NUM_OBJECTS];
 
 static int renderMethod = RENDER_POLYS;
-static int objectMeshIndex = 10;
 
 static Vec3 playerPos;
 static int playerAngle = 0;
@@ -134,11 +142,12 @@ static void input3D(int dt)
 
 		pposX -= tMovX;
 	}
+
 	if (playerThrustY != 0) {
 		int tMov = (dt*playerMoveSpeed*playerThrustY) << (PPOS_BITS - THRUST_BITS);
-		int tMovY = (tMov * sinTab[(playerAngle + (SINTAB_SIZE / 4)) & (SINTAB_SIZE - 1)]) >> AMPLITUDE_BITS;
+		int tMovY = (tMov * sinTab[(playerAngle - (SINTAB_SIZE / 4)) & (SINTAB_SIZE - 1)]) >> AMPLITUDE_BITS;
 
-		pposY -= tMovY;
+		pposY += tMovY;
 	}
 
 	playerPos.x = pposX >> PPOS_BITS;
@@ -206,7 +215,7 @@ static void setupPalette3D()
 	makeAndSetPal(240,255, 0,0,0, 63,63,63);
 }
 
-static void script3D(Mesh *ms, int t)
+static void scriptSpaceship3D(Mesh *ms)
 {
 	Vec3 *rot = &ms->rot;
 	rot->x = 1024;
@@ -220,13 +229,35 @@ static void script3D(Mesh *ms, int t)
 	ms->renderMode = renderMethod;
 }
 
+static void scriptCube3D(Mesh *ms, int t)
+{
+	Vec3 *rot = &ms->rot;
+	rot->x = t;
+    rot->y = 2*t;
+    rot->z = 3*t;
+
+	int vx = sinTab[playerAngle & (SINTAB_SIZE - 1)];
+	int vy = sinTab[(playerAngle - (SINTAB_SIZE / 4)) & (SINTAB_SIZE - 1)];
+
+	ms->pos.x = (vx * (8 + playerThrustX)) >> (4 + THRUST_BITS);
+	ms->pos.y = (vy * (8 + playerThrustY)) >> (4 + THRUST_BITS);
+	ms->pos.z = playerPos.z;
+
+	ms->renderMode = renderMethod;
+}
+
 static void updateScene3D(Screen *screen, int t)
 {
+	Mesh *ms;
+
 	renderTilemap3dLayer(&playerPos, 0, screen);
 
-	Mesh *ms = objectMesh[objectMeshIndex];
+	ms = objectMesh[OBJ_TRIPOD];
+	scriptCube3D(ms, t);
+	renderMesh(ms, screen);
 
-	script3D(ms, t);
+	ms = objectMesh[OBJ_SPACESHIP];
+	scriptSpaceship3D(ms);
 	renderMesh(ms, screen);
 
 	for (int i=1; i<TILEMAP_LAYERS; ++i) {
