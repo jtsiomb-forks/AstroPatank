@@ -84,6 +84,10 @@ static void input3D(int dt)
 	int pposZ = playerPos.z << PPOS_BITS;
 	int pAngle = playerAngle << PPOS_BITS;
 
+	if (buttonsHeld.down) {
+		tAng = -tAng;
+	}
+	
 	if (buttonsHeld.left) {
 		pAngle += tAng;
 	}
