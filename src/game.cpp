@@ -37,7 +37,9 @@ static int objectMeshIndex = 10;
 
 static Vec3 playerPos;
 static int playerAngle = 0;
-static int playerMoveSpeed = 2;
+static int playerThrustX = 0;
+static int playerThrustY = 0;
+static int playerMoveSpeed = 4;
 static int playerAngleSpeed = 2;
 static int playerZoomSpeed = 4;
 
@@ -60,6 +62,9 @@ static bool checkPlayerCollision(uint8 *tmap)
 	return (tmap[ty0*TILEMAP_WIDTH+tx0] || tmap[ty0*TILEMAP_WIDTH+tx1] || tmap[ty1*TILEMAP_WIDTH+tx0] || tmap[ty1*TILEMAP_WIDTH+tx1]);
 }
 
+#define THRUST_BITS 6
+#define THRUST_MAX (1 << THRUST_BITS)
+
 static void input3D(int dt)
 {
 	uint8* tmap = &getTilemap3D()[TILEMAP_LAYER_SIZE];
@@ -75,7 +80,6 @@ static void input3D(int dt)
 	int prevPlayerPosX = playerPos.x;
 	int prevPlayerPosY = playerPos.y;
 
-	int tMov = (dt*playerMoveSpeed) << PPOS_BITS;
 	int tAng = (dt*playerAngleSpeed) << PPOS_BITS;
 	int tZoom = (dt*playerZoomSpeed) << PPOS_BITS;
 
@@ -96,26 +100,57 @@ static void input3D(int dt)
 	}
 	playerAngle = pAngle >> PPOS_BITS;
 
-	int tMovY = (tMov * sinTab[(playerAngle + (SINTAB_SIZE / 4)) & (SINTAB_SIZE - 1)]) >> AMPLITUDE_BITS;
-	int tMovX = (tMov * sinTab[playerAngle & (SINTAB_SIZE - 1)]) >> AMPLITUDE_BITS;
-
 	if (buttonsHeld.up) {
-		pposX -= tMovX;
-		pposY -= tMovY;
+		if (playerThrustX < THRUST_MAX) {
+			playerThrustX++;
+		}
+		if (playerThrustY < THRUST_MAX) {
+			playerThrustY++;
+		}
+	} else if (buttonsHeld.down) {
+		if (playerThrustX > -(THRUST_MAX / 2)) {
+			playerThrustX--;
+		}
+		if (playerThrustY > -(THRUST_MAX / 2)) {
+			playerThrustY--;
+		}
+	} else {
+		if (playerThrustX < 0) {
+			playerThrustX++;
+		} else if (playerThrustX > 0) {
+			playerThrustX--;
+		}
+
+		if (playerThrustY < 0) {
+			playerThrustY++;
+		} else if (playerThrustY > 0) {
+			playerThrustY--;
+		}
 	}
-	if (buttonsHeld.down) {
-		pposX += tMovX;
-		pposY += tMovY;
+
+	if (playerThrustX != 0) {
+		int tMov = (dt*playerMoveSpeed*playerThrustX) << (PPOS_BITS - THRUST_BITS);
+		int tMovX = (tMov * sinTab[playerAngle & (SINTAB_SIZE - 1)]) >> AMPLITUDE_BITS;
+
+		pposX -= tMovX;
+	}
+	if (playerThrustY != 0) {
+		int tMov = (dt*playerMoveSpeed*playerThrustY) << (PPOS_BITS - THRUST_BITS);
+		int tMovY = (tMov * sinTab[(playerAngle + (SINTAB_SIZE / 4)) & (SINTAB_SIZE - 1)]) >> AMPLITUDE_BITS;
+
+		pposY -= tMovY;
 	}
 
 	playerPos.x = pposX >> PPOS_BITS;
 	if (checkPlayerCollision(tmap)) {
 		playerPos.x = prevPlayerPosX;
+		playerThrustX = -(playerThrustX * 12) >> 4;
 	}
 
 	playerPos.y = pposY >> PPOS_BITS;
 	if (checkPlayerCollision(tmap)) {
 		playerPos.y = prevPlayerPosY;
+		playerThrustY = -(playerThrustY * 12) >> 4;
 	}
 
 
