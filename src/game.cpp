@@ -29,6 +29,17 @@
 #define NUM_OBJECTS 17
 #define PPOS_BITS 8
 
+#define NUM_THINGS 4
+
+typedef struct GameThing
+{
+	Vec3 pos, rot;
+	Mesh *mesh;
+	bool alive;
+} GameThing;
+
+static GameThing thing[NUM_THINGS];
+
 enum {
 	OBJ_QUAD, OBJ_TRIPOD, OBJ_PYRAMID, OBJ_ROMBUS, OBJ_CUBE, 
 	OBJ_GLENZ, OBJ_UFO, OBJ_UFO2,
@@ -38,8 +49,8 @@ enum {
 	OBJ_TEST3, OBJ_ROMBUS_RING, OBJ_TORUS2, OBJ_EIGHT_CUBES
 };
 
-static int8 *objMeshData[NUM_OBJECTS] = {	objQuadData, objTripodData, objPyramidData, objRombusData, objCubeData, objGlenzData, objUfoData, objUfo2Data, objDrumData, objSquareCrossData, 
-									objSpaceship1Data, objTorusData, objCubeStarData, objTest3Data, objRombusRingData, objTorus2Data, objEightCubesData };
+static int8 *objMeshData[NUM_OBJECTS] = { 	objQuadData, objTripodData, objPyramidData, objRombusData, objCubeData, objGlenzData, objUfoData, objUfo2Data, objDrumData, objSquareCrossData, 
+											objSpaceship1Data, objTorusData, objCubeStarData, objTest3Data, objRombusRingData, objTorus2Data, objEightCubesData };
 
 static Mesh *objectMesh[NUM_OBJECTS];
 
@@ -50,14 +61,26 @@ static int playerThrustX = 0;
 static int playerThrustY = 0;
 static int playerMoveSpeed = 4;
 static int playerAngleSpeed = 2;
-static int playerLayer = 0;
 
 static Vec3 centeredViewPos;
 static int viewZoomSpeed = 4;
 
 
+static void initThings()
+{
+	thing[0].mesh = objectMesh[OBJ_SPACESHIP];
+	thing[0].alive = true;
+
+	for (int i=1; i<NUM_THINGS; ++i) {
+		thing[i].mesh = objectMesh[OBJ_GLENZ];
+		thing[i].alive = true;
+	}
+}
+
 static bool checkPlayerCollision(uint8 *tmap)
 {
+	int playerLayer = playerPos.z / TILE_HEIGHT;
+
 	if (playerPos.x < TILE_SIZE || playerPos.x >= (TILEMAP_WIDTH - 1) * TILE_SIZE || playerPos.y < TILE_SIZE || playerPos.y >= (TILEMAP_HEIGHT - 1) * TILE_SIZE) return true;
 	if (playerLayer < 0  || playerLayer >= TILEMAP_LAYERS-1) return false;
 
@@ -160,8 +183,6 @@ static void input3D(int dt)
 	}
 
 	playerPos.z = pposZ >> PPOS_BITS;
-	playerLayer = playerPos.z / TILE_HEIGHT;
-	CLAMP(playerLayer, 0, TILEMAP_LAYERS-1);
 
 	playerPos.x = pposX >> PPOS_BITS;
 	if (checkPlayerCollision(tmap)) {
@@ -230,31 +251,53 @@ static void setupPalette3D()
 	makeAndSetPal(240,255, 0,0,0, 63,63,63);
 }
 
-static void scriptSpaceship3D(Mesh *ms)
+static void renderObject(int i, Screen *screen)
 {
-	Vec3 *rot = &ms->rot;
-	rot->x = 1024;
-    rot->y = playerAngle;
-    rot->z = 0;
+	GameThing *gt = &thing[i];
+	Mesh *ms = gt->mesh;
 
-	ms->pos.x = 0;
-	ms->pos.y = 0;
-	ms->pos.z = centeredViewPos.z - playerPos.z;
+	ms->pos = centeredViewPos - gt->pos;
+	ms->rot = gt->rot;
+
+	renderMesh(ms, screen);
 }
 
-static void scriptCube3D(Mesh *ms, int t)
+static void scriptObject(int i, Screen *screen, int t)
 {
-	Vec3 *rot = &ms->rot;
-	rot->x = t;
-    rot->y = 2*t;
-    rot->z = 3*t;
+	if (i < 0 || i >= NUM_THINGS) return;
 
-	int vx = sinTab[playerAngle & (SINTAB_SIZE - 1)];
-	int vy = sinTab[(playerAngle - (SINTAB_SIZE / 4)) & (SINTAB_SIZE - 1)];
+	GameThing *gt = &thing[i];
 
-	ms->pos.x = (vx * (8 + playerThrustX)) >> (4 + THRUST_BITS);
-	ms->pos.y = (vy * (8 + playerThrustY)) >> (4 + THRUST_BITS);
-	ms->pos.z = centeredViewPos.z - playerPos.z;
+	switch(i) {
+		case 0:
+		{
+			gt->rot.x = 1024;
+			gt->rot.y = playerAngle;
+			gt->rot.z = 0;
+
+			gt->pos.x = playerPos.x;
+			gt->pos.y = playerPos.y;
+			gt->pos.z = playerPos.z;
+		}
+		break;
+
+		default:
+		{
+			int vx = sinTab[(playerAngle + i * (SINTAB_SIZE / 16))& (SINTAB_SIZE - 1)];
+			int vy = sinTab[(playerAngle + i * (SINTAB_SIZE / 16) - (SINTAB_SIZE / 4)) & (SINTAB_SIZE - 1)];
+
+			gt->rot.x = t;
+			gt->rot.y = 2*t;
+			gt->rot.z = 3*t;
+
+			gt->pos.x = playerPos.x + 256;//- ((vx * (16 * (i + 1) + playerThrustX)) >> (4 + THRUST_BITS));
+			gt->pos.y = playerPos.y + 256;//- ((vy * (16 * (i + 1) + playerThrustY)) >> (4 + THRUST_BITS));
+			gt->pos.z = playerPos.z;
+		}
+		break;
+	}
+
+	renderObject(i, screen);
 }
 
 static void updateScene3D(Screen *screen, int t)
@@ -264,20 +307,15 @@ static void updateScene3D(Screen *screen, int t)
 	centeredViewPos.x = playerPos.x;
 	centeredViewPos.y = playerPos.y;
 
-	for (int i=0; i<=playerLayer; ++i) {
-		renderTilemap3dLayer(&centeredViewPos, i, screen);
-	}
-
-	ms = objectMesh[OBJ_TRIPOD];
-	scriptCube3D(ms, t);
-	renderMesh(ms, screen);
-
-	ms = objectMesh[OBJ_SPACESHIP];
-	scriptSpaceship3D(ms);
-	renderMesh(ms, screen);
-
-	for (int i=playerLayer+1; i<TILEMAP_LAYERS; ++i) {
-		renderTilemap3dLayer(&centeredViewPos, i, screen);
+	for (int n=0; n<TILEMAP_LAYERS; ++n) {
+		renderTilemap3dLayer(&centeredViewPos, n, screen);
+		for (int i=0; i<NUM_THINGS; ++i) {
+			int layerOver = thing[i].pos.z / TILE_HEIGHT;
+			CLAMP(layerOver, 0, TILEMAP_LAYERS);
+			if (layerOver == n) {
+				scriptObject(i, screen, t);
+			}
+		}
 	}
 }
 
@@ -327,6 +365,8 @@ void gameInit()
 	centeredViewPos.z = GROUND_Z;
 
 	tilemap3dInit();
+
+	initThings();
 
 	setupPalette3D();
 
