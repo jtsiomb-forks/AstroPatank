@@ -10,7 +10,7 @@
 
 #include "mathutil.h"
 
-#define NUM_SOFT_BUFFERS 2
+#define NUM_SOFT_BUFFERS 1
 
 static uint8 *VGAptr = (uint8*)0xA0000;
 static uint8 *TXTptr = (uint8*)0xB8000;
