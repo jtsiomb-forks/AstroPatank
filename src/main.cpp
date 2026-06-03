@@ -71,7 +71,7 @@ int main(int argc, char **argv)
 
 	gameInit();
 
-	while(!buttonsHeld.escape) {
+	while(!isGameQuit()) {
 		screen.data = getRenderBuffer(video);
 		gameRun(&screen, getTime());
 		drawFps(video);

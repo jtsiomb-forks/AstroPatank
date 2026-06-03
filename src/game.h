@@ -32,6 +32,8 @@ void gameInit();
 void gameRun(Screen *screen, int t);
 
 void setIsInGame(bool inGame);
+void setGameQuit(bool quit);
+bool isGameQuit();
 
 void startGameMusic(int musIndex);
 

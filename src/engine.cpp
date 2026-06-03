@@ -28,8 +28,8 @@ static ScreenPoint scrPoints[MAX_VERTEX_POINTS];
 static char scrPolyVis[MAX_POLYS];
 
 // No need to care much for such small polys in this game about sorting (reduced all values too short)
-#define MAX_AVG_Z 4096
-#define Z_BUCKET_RANGE 256
+#define MAX_AVG_Z 8192
+#define Z_BUCKET_RANGE 64
 #define Z_BUCKETS_NUM (MAX_AVG_Z / Z_BUCKET_RANGE)
 #define Z_BUCKET_MAX_POLYS 32
 
@@ -65,19 +65,21 @@ static void calcRotMatrix(Vec3 *rot)
 
 static void genRotAxes(Mesh *ms)
 {
-	int gridScale = ms->gridScale;
+	int gridScaleX = ms->gridScaleX;
+	int gridScaleY = ms->gridScaleY;
+	int gridScaleZ = ms->gridScaleZ;
 
-    axisX.x = (rotMat[0] * gridScale) >> AMPLITUDE_BITS;
-	axisX.y = (rotMat[1] * gridScale) >> AMPLITUDE_BITS;
-	axisX.z = (rotMat[2] * gridScale) >> AMPLITUDE_BITS;
+    axisX.x = (rotMat[0] * gridScaleX) >> AMPLITUDE_BITS;
+	axisX.y = (rotMat[1] * gridScaleX) >> AMPLITUDE_BITS;
+	axisX.z = (rotMat[2] * gridScaleX) >> AMPLITUDE_BITS;
 
-    axisY.x = (rotMat[3] * gridScale) >> AMPLITUDE_BITS;
-	axisY.y = (rotMat[4] * gridScale) >> AMPLITUDE_BITS;
-	axisY.z = (rotMat[5] * gridScale) >> AMPLITUDE_BITS;
+    axisY.x = (rotMat[3] * gridScaleY) >> AMPLITUDE_BITS;
+	axisY.y = (rotMat[4] * gridScaleY) >> AMPLITUDE_BITS;
+	axisY.z = (rotMat[5] * gridScaleY) >> AMPLITUDE_BITS;
 
-    axisZ.x = (rotMat[6] * gridScale) >> AMPLITUDE_BITS;
-	axisZ.y = (rotMat[7] * gridScale) >> AMPLITUDE_BITS;
-	axisZ.z = (rotMat[8] * gridScale) >> AMPLITUDE_BITS;
+    axisZ.x = (rotMat[6] * gridScaleZ) >> AMPLITUDE_BITS;
+	axisZ.y = (rotMat[7] * gridScaleZ) >> AMPLITUDE_BITS;
+	axisZ.z = (rotMat[8] * gridScaleZ) >> AMPLITUDE_BITS;
 }
 
 static void genRotGridAxes(Mesh *ms)

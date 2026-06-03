@@ -1,5 +1,5 @@
-#ifndef INTRO_H
-#define INTRO_H
+#ifndef MENU_H
+#define MENU_H
 
 #include "types.h"
 #include "game.h"

@@ -180,7 +180,7 @@ Mesh* initMeshFromCPCdata(int8 *data)
 
 	ms->renderMode = RENDER_POLYS;
 	ms->gridRange = DEFAULT_CPC_GRID_RANGE;
-	ms->gridScale = DEFAULT_CPC_GRID_SCALE;
+	ms->gridScaleX = ms->gridScaleY = ms->gridScaleZ = DEFAULT_CPC_GRID_SCALE;
 
 	if (numLines==1) {
 		free(ms->lineIndices);
@@ -259,7 +259,7 @@ Mesh* initMesh(int numVerts, int numLines, int numTriangles, int numQuads, bool 
 
 	ms->renderMode = RENDER_POLYS;
 	ms->gridRange = gridRange;
-	ms->gridScale = gridScale;
+	ms->gridScaleX = ms->gridScaleY = ms->gridScaleZ = gridScale;
 
 	return ms;
 }

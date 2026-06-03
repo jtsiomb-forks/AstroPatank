@@ -9,7 +9,8 @@
 #include "mathutil.h"
 
 #include "game.h"
-#include "intro.h"
+#include "fonts.h"
+#include "menu.h"
 #include "tile_3d.h"
 #include "video.h"
 #include "input.h"
@@ -80,7 +81,8 @@ static int playerAngleSpeed = 2;
 static Vec3 centeredViewPos;
 static int viewZoomSpeed = 4;
 
-static bool isInGame = false;
+static bool isInGame = true;
+static bool gameQuit = false;
 
 
 void switchGameMusic()
@@ -96,6 +98,16 @@ void switchGameMusic()
 	}
 }
 
+bool isGameQuit()
+{
+	return gameQuit;
+}
+
+void setGameQuit(bool quit)
+{
+	gameQuit = quit;
+}
+
 void setIsInGame(bool inGame)
 {
 	if (isInGame==inGame) return;
@@ -106,17 +118,14 @@ void setIsInGame(bool inGame)
 
 static void initThings()
 {
+	memset(thing, 0, sizeof(GameThing) * NUM_THINGS);
+
 	thing[0].mesh = objectMesh[OBJ_SPACESHIP];
 	thing[0].alive = true;
 
-	for (int i=1; i<NUM_THINGS; ++i) {
-		if (i < 4) {
-			thing[i].mesh = objectMesh[OBJ_UFO2 + i - 1];
-			thing[i].alive = true;
-		} else {
-			thing[i].mesh = NULL;
-			thing[i].alive = false;
-		}
+	for (int i=1; i<4; ++i) {
+		thing[i].mesh = objectMesh[OBJ_LASER];
+		thing[i].alive = true;
 	}
 }
 
@@ -209,6 +218,13 @@ static void input3D(int dt)
 		} else if (playerThrustY > 0) {
 			playerThrustY--;
 		}
+	}
+
+	if (buttonsHeld.fire) {
+	}
+
+	if (buttonsHeld.escape) {
+		setIsInGame(false);
 	}
 
 	if (playerThrustX != 0) {
@@ -320,7 +336,7 @@ static void scriptObject(int i, int t)
 	switch(i) {
 		case 0:
 		{
-			gt->rot.x = 1024;
+			gt->rot.x = SINTAB_SIZE >> 2;
 			gt->rot.y = playerAngle;
 			gt->rot.z = 0;
 
@@ -335,9 +351,9 @@ static void scriptObject(int i, int t)
 			int vx = sinTab[(t + i * (SINTAB_SIZE / 3))& (SINTAB_SIZE - 1)];
 			int vy = sinTab[(t + i * (SINTAB_SIZE / 3) - (SINTAB_SIZE / 4)) & (SINTAB_SIZE - 1)];
 
-			gt->rot.x = t;
-			gt->rot.y = 2*t;
-			gt->rot.z = 3*t;
+			gt->rot.x = SINTAB_SIZE >> 2;
+			gt->rot.y = t;
+			gt->rot.z = 0;
 
 			gt->pos.x = playerPos.x + ((vx * 64) >> (4 + THRUST_BITS));
 			gt->pos.y = playerPos.y - ((vy * 64) >> (4 + THRUST_BITS));
@@ -410,13 +426,19 @@ void gameInit()
 	initEngine();
 
 	for (int i=0; i<NUM_MESHES; ++i) {
-		int gridScaleMul = 16;
-		if (i==OBJ_SPACESHIP) {
-			gridScaleMul = 48;
+		int gridScaleMulX = 40;
+		int gridScaleMulY = 40;
+		int gridScaleMulZ = 40;
+		if (i==OBJ_LASER) {
+			gridScaleMulX = 12;
+			gridScaleMulY = 16;
+			gridScaleMulZ = 32;
 		}
 
 		objectMesh[i] = initMeshFromCPCdata(objMeshData[i]);
-		objectMesh[i]->gridScale = (objectMesh[i]->gridScale * gridScaleMul) >> 8;
+		objectMesh[i]->gridScaleX = (objectMesh[i]->gridScaleX * gridScaleMulX) >> 8;
+		objectMesh[i]->gridScaleY = (objectMesh[i]->gridScaleY * gridScaleMulY) >> 8;
+		objectMesh[i]->gridScaleZ = (objectMesh[i]->gridScaleZ * gridScaleMulZ) >> 8;
 
 		//reversePolygonOrder(objectMesh[i]); // Why did this work on EGA but here we shouldn't be doing it?
 	}
@@ -432,6 +454,8 @@ void gameInit()
 	initThings();
 
 	setupPalette3D();
+
+	fontsInit();
 
 	menuInit();
 

@@ -22,7 +22,7 @@ typedef struct Mesh
 	uint8 *polyColor;
 
 	int renderMode;
-	int gridScale;
+	int gridScaleX, gridScaleY, gridScaleZ;
 	int gridRange;
 
 	Vec3 pos, rot;
