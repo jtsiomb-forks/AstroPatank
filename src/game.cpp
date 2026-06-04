@@ -35,6 +35,9 @@
 #define BULLET_THING_BASE 1
 #define MAX_BULLETS 3
 
+#define NARC_THING_BASE (BULLET_THING_BASE + MAX_BULLETS)
+#define MAX_NARCS 8
+
 
 typedef struct GameThing
 {
@@ -53,21 +56,11 @@ enum {
 	OBJ_TORUS, OBJ_CUBESTAR,
 	OBJ_TEST3, OBJ_ROMBUS_RING, OBJ_TORUS2, OBJ_EIGHT_CUBES,
 	OBJ_LASER,
-	OBJ_LETTER_A,
-	OBJ_LETTER_S,
-	OBJ_LETTER_T,
-	OBJ_LETTER_R,
-	OBJ_LETTER_O,
-	OBJ_LETTER_P,
-	OBJ_LETTER_N,
-	OBJ_LETTER_K,
 	NUM_MESHES
 };
 
 static int8 *objMeshData[NUM_MESHES] =	{ 	objQuadData, objTripodData, objPyramidData, objRombusData, objCubeData, objGlenzData, objUfoData, objUfo2Data, objDrumData, objSquareCrossData, 
-											objSpaceship1Data, objTorusData, objCubeStarData, objTest3Data, objRombusRingData, objTorus2Data, objEightCubesData, 
-											objLaserData, 
-											objLetterAData, objLetterSData, objLetterTData, objLetterRData, objLetterOData, objLetterPData, objLetterNData, objLetterKData
+											objSpaceship1Data, objTorusData, objCubeStarData, objTest3Data, objRombusRingData, objTorus2Data, objEightCubesData, objLaserData
 										};
 
 static Mesh *objectMesh[NUM_MESHES];
@@ -124,19 +117,6 @@ void setIsInGame(bool inGame)
 	switchGameMusic();
 }
 
-static void initThings()
-{
-	memset(thing, 0, sizeof(GameThing) * NUM_THINGS);
-
-	thing[0].mesh = objectMesh[OBJ_SPACESHIP];
-	thing[0].alive = true;
-
-	for (int i=1; i<4; ++i) {
-		thing[i].mesh = objectMesh[OBJ_LASER];
-		thing[i].alive = false;
-	}
-}
-
 static bool checkPlayerCollision(uint8 *tmap)
 {
 	int playerLayer = playerPos.z / TILE_HEIGHT;
@@ -180,6 +160,57 @@ static void spawnBullet(Vec3 &pos, Vec3 &rot, Vec3 &vel)
 	gt->alive = true;
 
 	currentBullet = (currentBullet + 1) % MAX_BULLETS;
+}
+
+static void setRandomThingVelocity(GameThing *gt)
+{
+	int angle = getRand(0, SINTAB_SIZE-1);
+
+	gt->vel.x = -((16 << PPOS_BITS) * sinTab[angle & (SINTAB_SIZE - 1)]) >> AMPLITUDE_BITS;
+	gt->vel.y = ((16 << PPOS_BITS) * sinTab[(angle - (SINTAB_SIZE / 4)) & (SINTAB_SIZE - 1)]) >> AMPLITUDE_BITS;
+	gt->vel.z = 0;
+}
+
+static void setRandomThingPosition(GameThing *gt, uint8 layer)
+{
+	int tx, ty;
+	if (layer < TILEMAP_LAYERS-1) {
+		uint8* tmap = &getTilemap3D()[(layer + 1) * TILEMAP_LAYER_SIZE];
+
+		do {
+			tx = getRand(1,TILEMAP_WIDTH-2);
+			ty = getRand(1,TILEMAP_HEIGHT-2);
+		} while(tmap[ty*TILEMAP_WIDTH+tx]);
+	} else {
+		tx = getRand(1,TILEMAP_WIDTH-2);
+		ty = getRand(1,TILEMAP_HEIGHT-2);
+	}
+
+	gt->pos.x = (tx * TILE_SIZE + TILE_SIZE / 2) << PPOS_BITS;
+	gt->pos.y = (ty * TILE_SIZE + TILE_SIZE / 2) << PPOS_BITS;
+	gt->pos.z = (layer * TILE_SIZE) << PPOS_BITS;
+}
+
+static void initThings()
+{
+	memset(thing, 0, sizeof(GameThing) * NUM_THINGS);
+
+	thing[0].mesh = objectMesh[OBJ_SPACESHIP];
+	thing[0].alive = true;
+
+	for (int i=0; i<MAX_BULLETS; ++i) {
+		GameThing *gt = &thing[BULLET_THING_BASE + i];
+		gt->mesh = objectMesh[OBJ_LASER];
+		gt->alive = false;
+	}
+
+	for (int i=0; i<MAX_NARCS; ++i) {
+		GameThing *gt = &thing[NARC_THING_BASE + i];
+		gt->mesh = objectMesh[OBJ_CUBESTAR];
+		gt->alive = true;
+		setRandomThingPosition(gt, 0);
+		setRandomThingVelocity(gt);
+	}
 }
 
 #define THRUST_BITS 6
