@@ -9,7 +9,7 @@ LD = wlink
 LDFLAGS = libpath .\muslib libr MUSLIB3R.LIB
 
 $(bin): $(obj)
-    $(LD) name $@ file { *.obj } $(LDFLAGS)
+    $(LD) name $@ system stub32x option stack=16k file { *.obj } $(LDFLAGS)
 
 .cpp.obj: .autodepend
     $(CPP) $(CXXFLAGS) $<

@@ -14,6 +14,8 @@
 #include "musplay.h"
 #include "tinyfont.h"
 
+#define MEM_DEBUG
+
 
 static Video *video;
 static Screen screen;
@@ -61,8 +63,45 @@ static void initSystem()
 	initTinyFonts();
 }
 
+struct dpmi_free_mem {
+	uint32 largest_block;
+	uint32 max_unlocked_page;
+	uint32 max_locked_page;
+	uint32 total_unlocked;
+	uint32 total_free;
+	uint32 total_pages;
+	uint32 free_linear;
+	uint32 swap_file_size;
+	uint32 dummy[3];
+};
+
+#ifdef MEM_DEBUG
+uint32 getFreeMem() {
+    union REGS regs = {0};
+    struct SREGS sregs = {0};
+    struct dpmi_free_mem meminfo = {0};
+
+	memset(&meminfo, 0xFF, sizeof(meminfo));
+
+    sregs.es = FP_SEG(&meminfo);
+    regs.x.edi = FP_OFF(&meminfo);
+    regs.x.eax = 0x0500;
+
+    int386x(0x31, &regs, &regs, &sregs);
+
+    if (regs.x.cflag == 0) {
+		return meminfo.largest_block;
+    }
+	return 0;
+}
+#endif
+
 int main(int argc, char **argv)
 {
+	#ifdef MEM_DEBUG
+	uint32 mem0 = getFreeMem();
+	#endif
+
 	for (int i=1; i<argc; ++i) {
 		interpretArgument(argv[i]);
 	}
@@ -71,6 +110,10 @@ int main(int argc, char **argv)
 
 	gameInit();
 
+	#ifdef MEM_DEBUG
+	uint32 mem1 = getFreeMem();
+	#endif
+	
 	while(!isGameQuit()) {
 		screen.data = getRenderBuffer(video);
 		gameRun(&screen, getTime());
@@ -87,6 +130,11 @@ int main(int argc, char **argv)
 	#endif
 
 	setTextMode();
+
+	#ifdef MEM_DEBUG
+	uint32 mem2 = getFreeMem();
+	printf("%d\n%d\n%d\n", mem0, mem1, mem2);
+	#endif
 
 	return 0;
 }

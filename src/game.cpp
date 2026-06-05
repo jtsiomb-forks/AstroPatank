@@ -88,6 +88,7 @@ static bool gameQuit = false;
 
 void switchGameMusic()
 {
+#ifdef SOUND_ON
 	stopMusPlay();
 
 	if (isInGame) {
@@ -97,6 +98,7 @@ void switchGameMusic()
 		loadMusFile(MUS_INTRO);
 		playMusFile(MUS_INTRO);
 	}
+#endif
 }
 
 bool isGameQuit()
