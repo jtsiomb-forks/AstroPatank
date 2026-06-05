@@ -119,7 +119,7 @@ void setIsInGame(bool inGame)
 	switchGameMusic();
 }
 
-static bool checkThingMapCollision(GameThing *gt, uint8 *tmap)
+static bool checkThingMapCollision(GameThing *gt)
 {
 	Vec3 pos = gt->pos;
 
@@ -143,15 +143,13 @@ static bool checkThingMapCollision(GameThing *gt, uint8 *tmap)
 	CLAMP(ty0,0,TILEMAP_HEIGHT-1)
 	CLAMP(ty1,0,TILEMAP_HEIGHT-1)
 
-	tmap = &tmap[(layer + 1) * TILEMAP_LAYER_SIZE];
+	uint8* tmap = &getTilemap3D()[(layer + 1) * TILEMAP_LAYER_SIZE];
 
 	return (tmap[ty0*TILEMAP_WIDTH+tx0] || tmap[ty0*TILEMAP_WIDTH+tx1] || tmap[ty1*TILEMAP_WIDTH+tx0] || tmap[ty1*TILEMAP_WIDTH+tx1]);
 }
 
 static void updateNarcs()
 {
-	uint8* tmap = getTilemap3D();
-
 	for (int i = 0; i < MAX_NARCS; ++i) {
 		GameThing *gt = &thing[NARC_THING_BASE + i];
 		if (gt->alive) {
@@ -159,13 +157,13 @@ static void updateNarcs()
 			int prevPosY = gt->pos.y;
 
 			gt->pos.x += gt->vel.x;
-			if (checkThingMapCollision(gt, tmap)) {
+			if (checkThingMapCollision(gt)) {
 				gt->pos.x = prevPosX;
 				gt->vel.x = -gt->vel.x;
 			}
 
 			gt->pos.y += gt->vel.y;
-			if (checkThingMapCollision(gt, tmap)) {
+			if (checkThingMapCollision(gt)) {
 				gt->pos.y = prevPosY;
 				gt->vel.y = -gt->vel.y;
 			}
@@ -185,6 +183,9 @@ static void updateBullets()
 		GameThing *gt = &thing[BULLET_THING_BASE + i];
 		if (gt->alive) {
 			gt->pos += gt->vel;
+			if (checkThingMapCollision(gt)) {
+				gt->alive = false;
+			}
 		}
 	}
 
@@ -280,7 +281,6 @@ static void initThings()
 
 static void input3D(int dt)
 {
-	uint8* tmap = getTilemap3D();
 	GameThing *gt = &thing[PLAYER_THING_BASE];
 	Vec3 *pos = &gt->pos;
 	Vec3 *rot = &gt->rot;
@@ -373,7 +373,7 @@ static void input3D(int dt)
 		pos->x -= tMovX;
 	}
 
-	if (checkThingMapCollision(gt,tmap)) {
+	if (checkThingMapCollision(gt)) {
 		pos->x = prevPlayerPosX;
 		playerThrustX = -(playerThrustX * 12) >> 4;
 	}
@@ -385,7 +385,7 @@ static void input3D(int dt)
 		pos->y += tMovY;
 	}
 
-	if (checkThingMapCollision(gt,tmap)) {
+	if (checkThingMapCollision(gt)) {
 		pos->y = prevPlayerPosY;
 		playerThrustY = -(playerThrustY * 12) >> 4;
 	}
