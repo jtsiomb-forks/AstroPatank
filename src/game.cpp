@@ -45,14 +45,17 @@
 
 #define MAX_SHIELD 8
 #define MAX_ENERGY 8
+#define MAX_HIT_BLINK 64
 
 static int energy = MAX_ENERGY;
 static int shield = MAX_SHIELD;
+static int hitBlink = 0;
 
 
 typedef struct GameThing
 {
 	Vec3 pos, rot, vel;
+	int size;
 	Mesh *mesh;
 	bool alive;
 } GameThing;
@@ -161,24 +164,39 @@ static Vec3 getVelocityFromAngle(int angle, int scale)
 	return vel;
 }
 
+static bool checkThingThingCollision(GameThing *gt1, GameThing *gt2)
+{
+	int range1 = gt1->size << PPOS_BITS;
+	int range2 = gt2->size << PPOS_BITS;
+
+	int posX1 = gt1->pos.x;
+	int posX2 = gt2->pos.x;
+	if (posX1 + range1 >= posX2 - range2 && posX2 + range2 >= posX1 - range1) {
+		int posY1 = gt1->pos.y;
+		int posY2 = gt2->pos.y;
+		if (posY1 + range1 >= posY2 - range2 && posY2 + range2 >= posY1 - range1) {
+			return true;
+		}
+	}
+	return false;
+}
+
 static bool checkThingMapCollision(GameThing *gt)
 {
-	Vec3 pos = gt->pos;
+	int posX = gt->pos.x >> PPOS_BITS;
+	int posY = gt->pos.y >> PPOS_BITS;
+	int posZ = gt->pos.z >> PPOS_BITS;
 
-	pos.x >>= PPOS_BITS;
-	pos.y >>= PPOS_BITS;
-	pos.z >>= PPOS_BITS;
+	int layer = posZ / TILE_HEIGHT;
 
-	int layer = pos.z / TILE_HEIGHT;
-
-	if (pos.x < TILE_SIZE || pos.x >= (TILEMAP_WIDTH - 1) * TILE_SIZE || pos.y < TILE_SIZE || pos.y >= (TILEMAP_HEIGHT - 1) * TILE_SIZE) return true;
+	if (posX < TILE_SIZE || posX >= (TILEMAP_WIDTH - 1) * TILE_SIZE || posY < TILE_SIZE || posY >= (TILEMAP_HEIGHT - 1) * TILE_SIZE) return true;
 	if (layer < 0  || layer >= TILEMAP_LAYERS-1) return false;
 
-	const int thingSize = TILE_SIZE / 4;
-	int tx0 = (pos.x - thingSize) / TILE_SIZE;
-	int ty0 = (pos.y - thingSize) / TILE_SIZE;
-	int tx1 = (pos.x + thingSize) / TILE_SIZE;
-	int ty1 = (pos.y + thingSize) / TILE_SIZE;
+	const int thingSize = gt->size;
+	int tx0 = (posX - thingSize) / TILE_SIZE;
+	int ty0 = (posY - thingSize) / TILE_SIZE;
+	int tx1 = (posX + thingSize) / TILE_SIZE;
+	int ty1 = (posY + thingSize) / TILE_SIZE;
 
 	CLAMP(tx0,0,TILEMAP_WIDTH-1)
 	CLAMP(tx1,0,TILEMAP_WIDTH-1)
@@ -192,6 +210,8 @@ static bool checkThingMapCollision(GameThing *gt)
 
 static void updateNarcs()
 {
+	GameThing *gtPlayer = &thing[PLAYER_THING_BASE];
+
 	for (int i = 0; i < MAX_NARCS; ++i) {
 		GameThing *gt = &thing[NARC_THING_BASE + i];
 		if (gt->alive) {
@@ -213,6 +233,17 @@ static void updateNarcs()
 			gt->rot.x += (((i & 3) + 1) << 4);
 			gt->rot.y += (((i & 7) + 1) << 3);
 			gt->rot.z += ((i & 15) << 2);
+
+			if (hitBlink==0 && checkThingThingCollision(gt, gtPlayer)) {
+				if (shield > 0) {
+					shield--;
+				} else {
+					if (energy > 0) {
+						energy--;
+					}
+				}
+				hitBlink = MAX_HIT_BLINK;
+			}
 		}
 	}
 
@@ -250,11 +281,33 @@ static void updateParticles()
 	}
 }
 
+static void updatePlayerBlink()
+{
+	GameThing *gt = &thing[PLAYER_THING_BASE];
+	uint8 *spaceshipCols = gt->mesh->polyColor;
+
+	if (hitBlink > 0) {
+		--hitBlink;
+	}
+
+	// Ugly lazy hack for now
+	if ((hitBlink & 15) > 7) {
+		spaceshipCols[0] = 8;
+		spaceshipCols[1] = 8;
+		spaceshipCols[2] = 8;
+	} else {
+		spaceshipCols[0] = 2;
+		spaceshipCols[1] = 4;
+		spaceshipCols[2] = 2;
+	}
+}
+
 static void updateGameplay(int t, int dt)
 {
 	updateNarcs();
 	updateBullets();
 	updateParticles();
+	updatePlayerBlink();
 }
 
 static void spawnBullet(Vec3 &pos, Vec3 &rot, Vec3 &vel)
@@ -301,6 +354,7 @@ static void initPlayerThing()
 	GameThing *gt = &thing[PLAYER_THING_BASE];
 
 	gt->mesh = objectMesh[OBJ_SPACESHIP];
+	gt->size = TILE_SIZE / 4;
 	gt->alive = true;
 
 	gt->pos.x = ((TILEMAP_WIDTH / 2) * TILE_SIZE + TILE_SIZE / 2) << PPOS_BITS;
@@ -321,12 +375,14 @@ static void initThings()
 	for (int i=0; i<MAX_BULLETS; ++i) {
 		GameThing *gt = &thing[BULLET_THING_BASE + i];
 		gt->mesh = objectMesh[OBJ_LASER];
+		gt->size = TILE_SIZE / 4;
 		gt->alive = false;
 	}
 
 	for (int i=0; i<MAX_NARCS; ++i) {
 		GameThing *gt = &thing[NARC_THING_BASE + i];
 		gt->mesh = objectMesh[OBJ_CUBESTAR];
+		gt->size = TILE_SIZE / 4;
 		gt->alive = true;
 		setRandomThingPosition(gt, 0);
 		setRandomThingVelocity(gt);
