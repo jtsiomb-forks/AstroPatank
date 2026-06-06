@@ -25,7 +25,11 @@
 
 #include "meshdata.h"
 
-#define GROUND_Z 3072
+#define GROUND_Z (2048 + 512)
+#define MID_Z (3144 + 768)
+#define FAR_Z (4096 + 1024)
+#define MAP_OUT_Z (16384 + 2048)
+#define MAP_INDEX_SIZE 4
 
 #define PPOS_BITS 8
 
@@ -50,6 +54,9 @@
 static int energy = MAX_ENERGY;
 static int shield = MAX_SHIELD;
 static int playerHit = 0;
+
+static int mapZ[] = { GROUND_Z, MID_Z, FAR_Z, MAP_OUT_Z };
+static uint8 mapIndex = 1;
 
 
 typedef struct GameThing
@@ -429,8 +436,7 @@ static void input3D(int dt)
 	Vec3 *pos = &gt->pos;
 	Vec3 *rot = &gt->rot;
 	
-	static bool rPrevPressed = false;
-	static bool rNextPressed = false;
+	static bool rMapPressed = false;
 
 	int prevPlayerPosX = pos->x;
 	int prevPlayerPosY = pos->y;
@@ -440,8 +446,6 @@ static void input3D(int dt)
 
 	int playerAngle = gt->rot.y;
 	int pAngle = playerAngle << PPOS_BITS;
-
-	int cposZ = centeredViewPos.z << PPOS_BITS;
 
 	if (buttonsHeld.down) {
 		tAng = -tAng;
@@ -540,27 +544,28 @@ static void input3D(int dt)
 		playSound(SOUND_PLAYER_BOUNCE);
 	}
 
+	if (buttonsHeld.map & !rMapPressed) {
+		mapIndex = (mapIndex + 1) % MAP_INDEX_SIZE;
+		centeredViewPos.z = mapZ[mapIndex];
+	}
+
+	/*
+	int cposZ = centeredViewPos.z << PPOS_BITS;
+
 	if (buttonsHeld.zoomIn) {
-		if (cposZ > (2048 << PPOS_BITS)) {
+		if (cposZ > (GROUND_Z << PPOS_BITS)) {
 			cposZ -= tZoom;
 		}
 	}
 	if (buttonsHeld.zoomOut) {
-		cposZ += tZoom;
+		if (cposZ < (MAP_OUT_Z << PPOS_BITS)) {
+			cposZ += tZoom;
+		}
 	}
 	centeredViewPos.z = cposZ >> PPOS_BITS;
+	*/
 
-	if (buttonsHeld.renderPrev & !rPrevPressed) {
-		pos->z -= (TILE_HEIGHT << PPOS_BITS);
-		CLAMP(pos->z, 0, 3 * (TILE_HEIGHT << PPOS_BITS));
-	}
-	if (buttonsHeld.renderNext & !rNextPressed) {
-		pos->z += (TILE_HEIGHT << PPOS_BITS);
-		CLAMP(pos->z, 0, 3 * (TILE_HEIGHT << PPOS_BITS));
-	}
-
-	rPrevPressed = buttonsHeld.renderPrev;
-	rNextPressed = buttonsHeld.renderNext;
+	rMapPressed = buttonsHeld.map;
 }
 
 static void setupPalette3D()
@@ -752,7 +757,7 @@ void gameInit()
 		//reversePolygonOrder(objectMesh[i]); // Why did this work on EGA but here we shouldn't be doing it?
 	}
 
-	centeredViewPos.z = GROUND_Z;
+	centeredViewPos.z = mapZ[mapIndex];
 
 	tilemap3dInit();
 

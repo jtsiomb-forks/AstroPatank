@@ -14,7 +14,7 @@
 #include "musplay.h"
 #include "tinyfont.h"
 
-#define MEM_DEBUG
+//#define MEM_DEBUG
 
 
 static Video *video;

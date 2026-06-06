@@ -80,7 +80,7 @@ static void inputMenu()
 	if (buttonsHeld.right & !rightPressed) {
 	}
 
-	if (buttonsHeld.fire) {
+	if (buttonsHeld.fire || buttonsHeld.start) {
 		if (menuSelect==0) {
 			setIsInGame(true);
 		} else {
