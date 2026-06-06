@@ -139,6 +139,8 @@ void setIsInGame(bool inGame)
 	isInGame = inGame;
 
 	switchGameMusic();
+
+	playerLaserTime = LASER_TIME_MAX;
 }
 
 static void spawnParticle(Vec3 &pos, Vec3 &vel, uint8 color, uint8 life)
@@ -258,6 +260,7 @@ static void laserAgainstEnemies(GameThing *gtLaser)
 		if (gt->alive && checkThingThingCollision(gt, gtLaser)) {
 			gt->alive = gtLaser->alive = false;
 			spawnParticleMiniExplosion(gt->pos, 32, 128, 48);
+			playSound(SOUND_ENEMY_DEAD);
 		}
 	}
 }
@@ -271,6 +274,7 @@ static void updateLasers()
 			if (checkThingMapCollision(gt)) {
 				spawnParticleMiniExplosion(gt->pos, 16, 96, 32);
 				gt->alive = false;
+				playSound(SOUND_LASER_PUFF);
 			}
 			laserAgainstEnemies(gt);	// not optimized, it's O(N^2)= O(LASERS * ENEMIES)
 		}
@@ -305,6 +309,7 @@ static void updatePlayerHit()
 					energy--;
 				}
 			}
+			playSound(SOUND_PLAYER_HIT);
 		}
 		--playerHit;
 
@@ -339,6 +344,13 @@ static void spawnLaser(Vec3 &pos, Vec3 &rot, Vec3 &vel)
 	gt->alive = true;
 
 	currentLaser = (currentLaser + 1) % MAX_LASERS;
+
+	//playSound(SOUND_ENEMY_DEAD);
+	playSound(SOUND_FIRE);
+
+	//SOUND_GEM_PICKUP, 
+	//SOUND_CHICKEN_PICKUP,
+	//SOUND_POWER_PICKUP, 
 }
 
 static void setRandomThingVelocity(GameThing *gt)
@@ -506,6 +518,7 @@ static void input3D(int dt)
 	if (checkThingMapCollision(gt)) {
 		pos->x = prevPlayerPosX;
 		playerThrustX = -(playerThrustX * 12) >> 4;
+		playSound(SOUND_PLAYER_BOUNCE);
 	}
 
 	if (playerThrustY != 0) {
@@ -524,6 +537,7 @@ static void input3D(int dt)
 	if (checkThingMapCollision(gt)) {
 		pos->y = prevPlayerPosY;
 		playerThrustY = -(playerThrustY * 12) >> 4;
+		playSound(SOUND_PLAYER_BOUNCE);
 	}
 
 	if (buttonsHeld.zoomIn) {
@@ -699,16 +713,22 @@ static void drawPalette(uint8 *vram)
 	}
 }
 
-/*static int soundDuration = 32;
-
-static void soundRun()
+static void initSoundsBpr()
 {
-	if (soundDuration-- > 0) {
-		soundTest();
-	} else {
-		stopSoundTest();
-	}
-}*/
+	setupSound(16, 128, 4096, SOUND_FIRE);
+
+	setupSound(8, 2048, 32768, SOUND_PLAYER_HIT);
+
+	setupSound(4, 1024, 32768, SOUND_ENEMY_HIT);
+	setupSound(16, 6144, 32768, SOUND_ENEMY_DEAD);
+	
+	setupSound(12, 6144, 23000, SOUND_PLAYER_BOUNCE);
+
+	setupSound(8, 768, 3144, SOUND_GEM_PICKUP);
+	setupSound(12, 1512, 6144, SOUND_CHICKEN_PICKUP);
+	setupSound(40, 1280, 16384, SOUND_POWER_PICKUP);
+	setupSound(6, 6144, 28000, SOUND_LASER_PUFF);
+}
 
 void gameInit()
 {
@@ -744,6 +764,8 @@ void gameInit()
 
 	menuInit();
 
+	initSoundsBpr();
+
 	switchGameMusic();
 }
 
@@ -762,7 +784,7 @@ void gameRun(Screen *screen, int t)
 		menuRun(screen, t);
 	}
 
-	//soundRun();
+	updateSound();
 
 #ifdef SHOW_PALETTE
 	drawPalette((uint8*)screen->data);

@@ -32,7 +32,7 @@ static void interpretArgument(char *arg)
 static void initSystem()
 {
 	#ifdef SOUND_ON
-		//initSound();
+		initSound();
 		loadMusDriver();
 		delay(500);
 	#endif
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
 
 	#ifdef SOUND_ON
 		shutdownMusPlay();
-		//deinitSound();
+		deinitSound();
 	#endif
 
 	setTextMode();
