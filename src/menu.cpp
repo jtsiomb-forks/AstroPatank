@@ -110,7 +110,9 @@ static void updateStars(Screen *screen, int t)
 		int sy = (SCR_H << SCR_BITS) / 2 - (pos->y << (PROJ_BITS + SCR_BITS)) / pos->z;
 
 		if (sx >= 0 && sx < ((SCR_W-1) << SCR_BITS) && sy >= 0 && sy < ((SCR_H-1) << SCR_BITS)) {
-			renderAntialiasedDot(sx,sy,((i & 1)<<6),(uint8*)screen->data);
+			int alphaShade = (STAR_FAR - pos->z) >> 3;
+			if (alphaShade > SHADE_ALPHA_MAX) alphaShade = SHADE_ALPHA_MAX;
+			renderAntialiasedDot(sx,sy,((i & 1)<<6),alphaShade,(uint8*)screen->data);
 		}
 	}
 }

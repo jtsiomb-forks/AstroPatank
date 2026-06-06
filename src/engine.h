@@ -24,6 +24,9 @@
 #define SHADE_RANGE RANGE_BITS(SHADE_BITS)
 #define SHADE_AND AND_BITS(SHADE_BITS)
 
+#define SHADE_ALPHA_BITS 6
+#define SHADE_ALPHA_MAX (1 << SHADE_ALPHA_BITS)
+
 
 #define ANGLE_BITS 12
 #define SINTAB_SIZE (1 << ANGLE_BITS)
@@ -54,7 +57,7 @@ extern int sinTab[SINTAB_SIZE];
 void initEngine();
 void renderMesh(Mesh *ms, Screen *screen);
 
-void renderAntialiasedDot(int sx, int sy, int colorBase, uint8 *vram);
+void renderAntialiasedDot(int sx, int sy, int colorBase, int shadeAlpha, uint8 *vram);
 
 void renderMeshHack(Mesh *ms, Screen *screen, bool onlyTransform);	// hack to only transform same repeating cube grid points, so that later for each cube we use the same transformed points but only trans/project
 

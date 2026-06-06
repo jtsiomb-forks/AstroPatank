@@ -341,7 +341,7 @@ static void renderMeshLines(Mesh *ms, uint8 *vram)
 	} while(--count != 0);
 }
 
-void renderAntialiasedDot(int sx, int sy, int colorBase, uint8 *vram)
+void renderAntialiasedDot(int sx, int sy, int colorBase, int shadeAlpha, uint8 *vram)
 {
 	const int xp = sx >> SCR_BITS;
 	const int yp = sy >> SCR_BITS;
@@ -353,15 +353,15 @@ void renderAntialiasedDot(int sx, int sy, int colorBase, uint8 *vram)
 	const int fracX0 = SHADE_AND - fracX1;
 	const int fracY0 = SHADE_AND - fracY1;
 
-	*dst = colorBase + ((fracX0 * fracY0) >> SHADE_BITS);
+	*dst = colorBase + ((((fracX0 * fracY0) >> SHADE_BITS) * shadeAlpha) >> SHADE_ALPHA_BITS);
 	if (xp < SCR_W - 1) {
-		*(dst+1) = colorBase + ((fracX1 * fracY0) >> SHADE_BITS);
+		*(dst+1) = colorBase + ((((fracX1 * fracY0) >> SHADE_BITS) * shadeAlpha) >> SHADE_ALPHA_BITS);
 	}
 	if (yp < SCR_H - 1) {
 		dst += SCR_LINE_BYTES;
-		*dst = colorBase + ((fracX0 * fracY1) >> SHADE_BITS);
+		*dst = colorBase + ((((fracX0 * fracY1) >> SHADE_BITS) * shadeAlpha) >> SHADE_ALPHA_BITS);
 		if (xp < SCR_W - 1) {
-			*(dst + 1) = colorBase + ((fracX1 * fracY1) >> SHADE_BITS);
+			*(dst + 1) = colorBase + ((((fracX1 * fracY1) >> SHADE_BITS) * shadeAlpha) >> SHADE_ALPHA_BITS);
 		}
 	}
 }
@@ -384,7 +384,7 @@ static void renderMeshDots(Mesh *ms, uint8 *vram)
 				uint8 *dst = vram + VRAM_PIXEL_OFFSET(sx >> (SCR_BITS - UNCHAINED_BITS),sy >> SCR_BITS);
 				*dst = color;
 			#else
-				renderAntialiasedDot(sx, sy, colorBase, vram);
+				renderAntialiasedDot(sx, sy, colorBase, SHADE_ALPHA_MAX, vram);
 			#endif
 		}
 		++src;

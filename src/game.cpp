@@ -34,12 +34,12 @@
 #define PLAYER_THING_BASE 0
 #define NUM_PLAYERS 1
 
-#define BULLET_TIME_MAX 48
-#define BULLET_THING_BASE (PLAYER_THING_BASE + NUM_PLAYERS)
-#define MAX_BULLETS 5
+#define LASER_TIME_MAX 48
+#define LASER_THING_BASE (PLAYER_THING_BASE + NUM_PLAYERS)
+#define MAX_LASERS 5
 
-#define NARC_THING_BASE (BULLET_THING_BASE + MAX_BULLETS)
-#define MAX_NARCS 8
+#define NARC_THING_BASE (LASER_THING_BASE + MAX_LASERS)
+#define MAX_NARCS 16
 
 #define NUM_PARTICLES 256
 
@@ -49,7 +49,7 @@
 
 static int energy = MAX_ENERGY;
 static int shield = MAX_SHIELD;
-static int hitBlink = 0;
+static int playerHit = 0;
 
 
 typedef struct GameThing
@@ -98,8 +98,8 @@ static int playerThrustY = 0;
 static int playerMoveSpeed = 4;
 static int playerAngleSpeed = 2;
 
-static int currentBullet = 0;
-static int playerBulletTime = 0;
+static int currentLaser = 0;
+static int playerLaserTime = 0;
 
 static Vec3 centeredViewPos;
 static int viewZoomSpeed = 4;
@@ -234,39 +234,49 @@ static void updateNarcs()
 			gt->rot.y += (((i & 7) + 1) << 3);
 			gt->rot.z += ((i & 15) << 2);
 
-			if (hitBlink==0 && checkThingThingCollision(gt, gtPlayer)) {
-				if (shield > 0) {
-					shield--;
-				} else {
-					if (energy > 0) {
-						energy--;
-					}
-				}
-				hitBlink = MAX_HIT_BLINK;
+			if (playerHit==0 && checkThingThingCollision(gt, gtPlayer)) {
+				playerHit = MAX_HIT_BLINK;
 			}
 		}
 	}
 
-	if (playerBulletTime > 0) playerBulletTime--;
+	if (playerLaserTime > 0) playerLaserTime--;
 }
 
-static void updateBullets()
+static void spawnParticleMiniExplosion(Vec3 &pos, int numParticles, uint8 color, uint8 life)
 {
-	for (int i = 0; i < MAX_BULLETS; ++i) {
-		GameThing *gt = &thing[BULLET_THING_BASE + i];
+	for (int n=0; n<numParticles; ++n) {
+		Vec3 vel = getVelocityFromAngle(getRand(0, SINTAB_SIZE-1), getRand(512,2048));
+		spawnParticle(pos, vel, color, life);
+	}
+}
+
+static void laserAgainstEnemies(GameThing *gtLaser)
+{
+	for (int i = 0; i < MAX_NARCS; ++i) {
+		GameThing *gt = &thing[NARC_THING_BASE + i];
+		if (gt->alive && checkThingThingCollision(gt, gtLaser)) {
+			gt->alive = gtLaser->alive = false;
+			spawnParticleMiniExplosion(gt->pos, 32, 128, 48);
+		}
+	}
+}
+
+static void updateLasers()
+{
+	for (int i = 0; i < MAX_LASERS; ++i) {
+		GameThing *gt = &thing[LASER_THING_BASE + i];
 		if (gt->alive) {
 			gt->pos += gt->vel;
 			if (checkThingMapCollision(gt)) {
-				for (int n=0; n<16; ++n) {
-					Vec3 vel0 = getVelocityFromAngle(getRand(0, SINTAB_SIZE-1), getRand(512,2048));
-					spawnParticle(gt->pos, vel0, 96, 32);
-				}
+				spawnParticleMiniExplosion(gt->pos, 16, 96, 32);
 				gt->alive = false;
 			}
+			laserAgainstEnemies(gt);	// not optimized, it's O(N^2)= O(LASERS * ENEMIES)
 		}
 	}
 
-	if (playerBulletTime > 0) playerBulletTime--;
+	if (playerLaserTime > 0) playerLaserTime--;
 }
 
 static void updateParticles()
@@ -281,45 +291,54 @@ static void updateParticles()
 	}
 }
 
-static void updatePlayerBlink()
+static void updatePlayerHit()
 {
 	GameThing *gt = &thing[PLAYER_THING_BASE];
 	uint8 *spaceshipCols = gt->mesh->polyColor;
 
-	if (hitBlink > 0) {
-		--hitBlink;
-	}
+	if (playerHit > 0) {
+		if (playerHit == MAX_HIT_BLINK) {
+			if (shield > 0) {
+				shield--;
+			} else {
+				if (energy > 0) {
+					energy--;
+				}
+			}
+		}
+		--playerHit;
 
-	// Ugly lazy hack for now
-	if ((hitBlink & 15) > 7) {
-		spaceshipCols[0] = 8;
-		spaceshipCols[1] = 8;
-		spaceshipCols[2] = 8;
-	} else {
-		spaceshipCols[0] = 2;
-		spaceshipCols[1] = 4;
-		spaceshipCols[2] = 2;
+		// Ugly lazy hack for now
+		if ((playerHit & 15) > 7) {
+			spaceshipCols[0] = 8;
+			spaceshipCols[1] = 8;
+			spaceshipCols[2] = 8;
+		} else {
+			spaceshipCols[0] = 2;
+			spaceshipCols[1] = 4;
+			spaceshipCols[2] = 2;
+		}
 	}
 }
 
 static void updateGameplay(int t, int dt)
 {
 	updateNarcs();
-	updateBullets();
+	updateLasers();
 	updateParticles();
-	updatePlayerBlink();
+	updatePlayerHit();
 }
 
-static void spawnBullet(Vec3 &pos, Vec3 &rot, Vec3 &vel)
+static void spawnLaser(Vec3 &pos, Vec3 &rot, Vec3 &vel)
 {
-	GameThing *gt = &thing[BULLET_THING_BASE + currentBullet];
+	GameThing *gt = &thing[LASER_THING_BASE + currentLaser];
 
 	gt->pos = pos;
 	gt->rot = rot;
 	gt->vel = vel;
 	gt->alive = true;
 
-	currentBullet = (currentBullet + 1) % MAX_BULLETS;
+	currentLaser = (currentLaser + 1) % MAX_LASERS;
 }
 
 static void setRandomThingVelocity(GameThing *gt)
@@ -372,8 +391,8 @@ static void initThings()
 
 	initPlayerThing();
 
-	for (int i=0; i<MAX_BULLETS; ++i) {
-		GameThing *gt = &thing[BULLET_THING_BASE + i];
+	for (int i=0; i<MAX_LASERS; ++i) {
+		GameThing *gt = &thing[LASER_THING_BASE + i];
 		gt->mesh = objectMesh[OBJ_LASER];
 		gt->size = TILE_SIZE / 4;
 		gt->alive = false;
@@ -453,7 +472,7 @@ static void input3D(int dt)
 		}
 	}
 
-	if (buttonsHeld.fire && playerBulletTime==0) {
+	if (buttonsHeld.fire && playerLaserTime==0) {
 		Vec3 bPos;
 		Vec3 bVel;
 		Vec3 bRot;
@@ -468,9 +487,9 @@ static void input3D(int dt)
 		bRot.y = playerAngle;
 		bRot.z = 0;
 
-		spawnBullet(bPos, bRot, bVel);
+		spawnLaser(bPos, bRot, bVel);
 
-		playerBulletTime = BULLET_TIME_MAX;
+		playerLaserTime = LASER_TIME_MAX;
 	}
 
 	if (buttonsHeld.escape) {
@@ -607,7 +626,9 @@ static void renderParticles(uint8 *vram)
 			int sy = ((SCR_H/2) << PPOS_BITS) + (((offY + pos->y) << (SCR_BITS + PROJ_BITS - PPOS_BITS)) / centeredViewPos.z);
 
 			if (sx >= 0 && sx < ((SCR_W-1) << SCR_BITS) && sy >= 0 && sy < ((SCR_H-1) << SCR_BITS)) {
-				renderAntialiasedDot(sx, sy, p->color, vram);
+				int alphaShade = 8 * p->life;
+				if (alphaShade > SHADE_ALPHA_MAX) alphaShade = SHADE_ALPHA_MAX;
+				renderAntialiasedDot(sx, sy, p->color, alphaShade, vram);
 			}
 		}
 	}
@@ -645,9 +666,8 @@ static void drawBar(uint8 bx, uint8 by, uint8 colbase, int value, uint8 *vram)
 	for (int y=0; y<4; ++y) {
 		uint8 c = colbase * 16 - 4*y - 1;
 		uint32 c32 = (c << 24) | (c << 16) | (c << 8) | c;
-		for (int x=0; x<value; x+=2) {
+		for (int x=0; x<value; x++) {
 			*(vram32 + x) = c32;
-			*(vram32 + x + 1) = c32;
 		}
 		vram32 += SCR_W / 4;
 	}
