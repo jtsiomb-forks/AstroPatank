@@ -41,6 +41,8 @@
 #define NARC_THING_BASE (BULLET_THING_BASE + MAX_BULLETS)
 #define MAX_NARCS 8
 
+#define NUM_PARTICLES 256
+
 
 typedef struct GameThing
 {
@@ -50,6 +52,17 @@ typedef struct GameThing
 } GameThing;
 
 static GameThing thing[NUM_THINGS];
+
+
+typedef struct Particle
+{
+	Vec3 pos, vel;
+	uint8 life, color;
+} Particle;
+
+static Particle particle[NUM_PARTICLES];
+static uint32 currParticleIndex = 0;
+
 
 enum {
 	OBJ_QUAD, OBJ_TRIPOD, OBJ_PYRAMID, OBJ_ROMBUS, OBJ_CUBE, 
@@ -119,6 +132,29 @@ void setIsInGame(bool inGame)
 	switchGameMusic();
 }
 
+static void spawnParticle(Vec3 &pos, Vec3 &vel, uint8 color, uint8 life)
+{
+	Particle *p = &particle[currParticleIndex];
+
+	p->pos = pos;
+	p->vel = vel;
+	p->color = color;
+	p->life = life;
+
+	currParticleIndex = (currParticleIndex + 1) % NUM_PARTICLES;
+}
+
+static Vec3 getVelocityFromAngle(int angle, int scale)
+{
+	Vec3 vel;
+
+	vel.x = -(scale * sinTab[angle & (SINTAB_SIZE - 1)]) >> AMPLITUDE_BITS;
+	vel.y = (scale * sinTab[(angle - (SINTAB_SIZE / 4)) & (SINTAB_SIZE - 1)]) >> AMPLITUDE_BITS;
+	vel.z = 0;
+
+	return vel;
+}
+
 static bool checkThingMapCollision(GameThing *gt)
 {
 	Vec3 pos = gt->pos;
@@ -184,6 +220,10 @@ static void updateBullets()
 		if (gt->alive) {
 			gt->pos += gt->vel;
 			if (checkThingMapCollision(gt)) {
+				for (int n=0; n<16; ++n) {
+					Vec3 vel0 = getVelocityFromAngle(getRand(0, SINTAB_SIZE-1), getRand(512,2048));
+					spawnParticle(gt->pos, vel0, 96, 32);
+				}
 				gt->alive = false;
 			}
 		}
@@ -192,10 +232,23 @@ static void updateBullets()
 	if (playerBulletTime > 0) playerBulletTime--;
 }
 
+static void updateParticles()
+{
+	for (int i=0; i<NUM_PARTICLES; ++i) {
+		Particle *p = &particle[i];
+
+		if (p->life != 0) {
+			p->pos += p->vel;
+			p->life--;
+		}
+	}
+}
+
 static void updateGameplay(int t, int dt)
 {
-	updateBullets();
 	updateNarcs();
+	updateBullets();
+	updateParticles();
 }
 
 static void spawnBullet(Vec3 &pos, Vec3 &rot, Vec3 &vel)
@@ -214,9 +267,7 @@ static void setRandomThingVelocity(GameThing *gt)
 {
 	int angle = getRand(0, SINTAB_SIZE-1);
 
-	gt->vel.x = -((16 << PPOS_BITS) * sinTab[angle & (SINTAB_SIZE - 1)]) >> AMPLITUDE_BITS;
-	gt->vel.y = ((16 << PPOS_BITS) * sinTab[(angle - (SINTAB_SIZE / 4)) & (SINTAB_SIZE - 1)]) >> AMPLITUDE_BITS;
-	gt->vel.z = 0;
+	gt->vel = getVelocityFromAngle(angle, 16 << PPOS_BITS);
 }
 
 static void setRandomThingPosition(GameThing *gt, uint8 layer)
@@ -345,9 +396,7 @@ static void input3D(int dt)
 		Vec3 bVel;
 		Vec3 bRot;
 
-		bVel.x = -((80 << PPOS_BITS) * sinTab[playerAngle & (SINTAB_SIZE - 1)]) >> AMPLITUDE_BITS;
-		bVel.y = ((80 << PPOS_BITS) * sinTab[(playerAngle - (SINTAB_SIZE / 4)) & (SINTAB_SIZE - 1)]) >> AMPLITUDE_BITS;
-		bVel.z = 0;
+		bVel = getVelocityFromAngle(playerAngle, 80 << PPOS_BITS);
 
 		bPos.x = pos->x + bVel.x;
 		bPos.y = pos->y + bVel.y;
@@ -383,6 +432,12 @@ static void input3D(int dt)
 		int tMovY = (tMov * sinTab[(playerAngle - (SINTAB_SIZE / 4)) & (SINTAB_SIZE - 1)]) >> AMPLITUDE_BITS;
 
 		pos->y += tMovY;
+	}
+
+	if (playerThrustX != 0 || playerThrustY != 0) {
+		Vec3 pos0 = Vec3(prevPlayerPosX, prevPlayerPosY, 0);
+		Vec3 vel0 = getVelocityFromAngle(getRand(0, SINTAB_SIZE-1), 2048);
+		spawnParticle(pos0, vel0, 32, 16);
 	}
 
 	if (checkThingMapCollision(gt)) {
@@ -472,6 +527,26 @@ static void updateThingsLayerLists()
 	}
 }
 
+static void renderParticles(uint8 *vram)
+{
+	int offX = -thing[PLAYER_THING_BASE].pos.x;
+	int offY = -thing[PLAYER_THING_BASE].pos.y;
+
+	for (int i=0; i<NUM_PARTICLES; ++i) {
+		Particle *p = &particle[i];
+
+		if (p->life != 0) {
+			Vec3 *pos = &p->pos;
+			int sx = ((SCR_W/2) << PPOS_BITS) + (((offX + pos->x) << (SCR_BITS + PROJ_BITS - PPOS_BITS)) / centeredViewPos.z);
+			int sy = ((SCR_H/2) << PPOS_BITS) + (((offY + pos->y) << (SCR_BITS + PROJ_BITS - PPOS_BITS)) / centeredViewPos.z);
+
+			if (sx >= 0 && sx < ((SCR_W-1) << SCR_BITS) && sy >= 0 && sy < ((SCR_H-1) << SCR_BITS)) {
+				renderAntialiasedDot(sx, sy, p->color, vram);
+			}
+		}
+	}
+}
+
 static void updateScene3D(Screen *screen, int t)
 {
 	Mesh *ms;
@@ -485,6 +560,8 @@ static void updateScene3D(Screen *screen, int t)
 		if (n < TILEMAP_LAYERS) {
 			renderTilemap3dLayer(&centeredViewPos, n, screen);
 		}
+
+		if (n==0) renderParticles((uint8*)screen->data);
 
 		const int layerCount = layerObjCount[n];
 		int *layerSrc = objsInLayer[n];
