@@ -43,6 +43,12 @@
 
 #define NUM_PARTICLES 256
 
+#define MAX_SHIELD 8
+#define MAX_ENERGY 8
+
+static int energy = MAX_ENERGY;
+static int shield = MAX_SHIELD;
+
 
 typedef struct GameThing
 {
@@ -489,6 +495,10 @@ static void setupPalette3D()
 		}
 	}
 	makeAndSetPal(0,15, 0,0,0, 63,47,31);
+
+	makeAndSetPal(128,143, 15,7,3, 63,47,15);
+	makeAndSetPal(144,160, 3,7,15, 15,47,63);
+
 	makeAndSetPal(240,255, 0,0,0, 63,63,63);
 }
 
@@ -571,6 +581,30 @@ static void updateScene3D(Screen *screen, int t)
 	}
 }
 
+static void drawBar(uint8 bx, uint8 by, uint8 colbase, int value, uint8 *vram)
+{
+	uint32 *vram32 = (uint32*)(vram + (by * 8) * SCR_W + bx*8);
+
+	value *= 3;
+	for (int y=0; y<4; ++y) {
+		uint8 c = colbase * 16 - 4*y - 1;
+		uint32 c32 = (c << 24) | (c << 16) | (c << 8) | c;
+		for (int x=0; x<value; x+=2) {
+			*(vram32 + x) = c32;
+			*(vram32 + x + 1) = c32;
+		}
+		vram32 += SCR_W / 4;
+	}
+}
+
+static void updateUI(Screen *screen)
+{
+	uint8 *vram = (uint8*)screen->data;
+
+	drawBar(1,1,9,energy,vram);
+	drawBar(1,2,10,shield,vram);
+}
+
 static void clearScreen(Screen *screen)
 {
 	const int screenSize = (screen->width * screen->height * screen->bpp) >> (3 + UNCHAINED_BITS);
@@ -647,6 +681,7 @@ void gameRun(Screen *screen, int t)
 		input3D(t - t0);
 		updateGameplay(t, t - t0);
 		updateScene3D(screen, t);
+		updateUI(screen);
 	} else {
 		menuRun(screen, t);
 	}
