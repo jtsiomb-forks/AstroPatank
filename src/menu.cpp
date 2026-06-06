@@ -59,10 +59,9 @@ static int titlePatankMeshIndex[PATANK_LETTERS_NUM] = { OBJ_LETTER_P, OBJ_LETTER
 
 static Vec3 titleAstroPos[ASTRO_LETTERS_NUM];
 static Vec3 titlePatankPos[PATANK_LETTERS_NUM];
-//static Vec3 titleAstroRot[ASTRO_LETTERS_NUM];
-//static Vec3 titlePatankRot[PATANK_LETTERS_NUM];
 
 static bool cameFromGame = true;	// what a hack I am bored
+static bool menuFinallyOn = false;
 
 
 typedef struct Star
@@ -116,7 +115,7 @@ static void updateStars(Screen *screen, int t)
 		*pos += *vel;
 
 		if (pos->z < STAR_NEAR) pos->z = STAR_FAR;
-		if (pos->z > STAR_FAR) pos->z = STAR_NEAR;
+		if (pos->z > STAR_FAR) continue; //pos->z = STAR_NEAR;
 
 		int sx = (pos->x << (PROJ_BITS + SCR_BITS)) / pos->z + (SCR_W << SCR_BITS) / 2;
 		int sy = (SCR_H << SCR_BITS) / 2 - (pos->y << (PROJ_BITS + SCR_BITS)) / pos->z;
@@ -143,10 +142,8 @@ static Vec3 interpolateVec(Vec3 &src, Vec3 &dst, int dt)
 	return v;
 }
 
-static void update3D(Screen *screen, int t)
+static void update3D(Screen *screen, int t, int dt)
 {
-	static int tStart = t;
-
 	/*Mesh *ms = objMesh[OBJ_ROMBUS_RING];
 
 	t >>= 1;
@@ -167,12 +164,12 @@ static void update3D(Screen *screen, int t)
 	for (int i=0; i<ASTRO_LETTERS_NUM; ++i) {
 		Mesh *ms = objMesh[titleAstroMeshIndex[i]];
 
-		int dt = t - tStart - i * 256;
-		if (dt > 0) {
+		int ddt = dt - i * 384 - 2048 - 512;
+		if (ddt > 0) {
 			dstRot.z = (192 * sinTab[(t + 64*i) & (SINTAB_SIZE - 1)]) >> AMPLITUDE_BITS;
 
-			ms->pos = interpolateVec(farPos, titleAstroPos[i], dt);
-			ms->rot = interpolateVec(farRot, dstRot, dt);
+			ms->pos = interpolateVec(farPos, titleAstroPos[i], ddt);
+			ms->rot = interpolateVec(farRot, dstRot, ddt);
 
 			renderMesh(ms, screen);
 		}
@@ -181,35 +178,32 @@ static void update3D(Screen *screen, int t)
 	for (int i=0; i<PATANK_LETTERS_NUM; ++i) {
 		Mesh *ms = objMesh[titlePatankMeshIndex[i]];
 
-		int dt = t - tStart - i * 256 - (1 << TITLE_INTERP_BITS);
-		if (dt > 0) {
+		int ddt = dt - i * 384 - (1 << TITLE_INTERP_BITS) - 2048 - 768;
+		if (ddt > 0) {
 			dstRot.z = (224 * sinTab[(t + 96*i) & (SINTAB_SIZE - 1)]) >> AMPLITUDE_BITS;
 
-			ms->pos = interpolateVec(farPos, titlePatankPos[i], dt);
-			ms->rot = interpolateVec(farRot, dstRot, dt);
+			ms->pos = interpolateVec(farPos, titlePatankPos[i], ddt);
+			ms->rot = interpolateVec(farRot, dstRot, ddt);
 
 			renderMesh(ms, screen);
+		}
+
+		if (!menuFinallyOn && (i==PATANK_LETTERS_NUM-1 && ddt >= (1 << TITLE_INTERP_BITS))) {
+			menuFinallyOn = true;
 		}
 	}
 
 }
 
-static void renderMenu()
+static void renderMenu(Screen *screen)
 {
+	uint8 *vram = (uint8*)screen->data;
+
 	for (int i=0; i<2; ++i) {
 		uint8 colOffset = 0;
 		if (menuSelect!=i) colOffset = 16;
-		drawText(120 + i * 8, 144 + i * 24, menuOptions[i], true, colOffset);
+		drawText(120 + i * 8, 144 + i * 24, menuOptions[i], true, colOffset, vram);
 	}
-}
-
-static void updateMenu(Screen *screen, int t)
-{
-	updateStars(screen, t);
-
-	update3D(screen, t);
-
-	renderMenu();
 }
 
 static void initTitleLetters()
@@ -240,7 +234,7 @@ static void initTitleLetters()
 static void initStars()
 {
 	for (int i=0; i<NUM_STARS; ++i) {
-		stars[i].pos = Vec3(getRand(-STAR_RANGE_X, STAR_RANGE_X), getRand(-STAR_RANGE_Y, STAR_RANGE_Y), getRand(STAR_NEAR, STAR_FAR));
+		stars[i].pos = Vec3(getRand(-STAR_RANGE_X, STAR_RANGE_X), getRand(-STAR_RANGE_Y, STAR_RANGE_Y), getRand(2 * STAR_FAR + STAR_NEAR, 2 * STAR_FAR + STAR_FAR));
 		stars[i].vel = Vec3(0,0,-12 + getRand(0, 8));
 	}
 }
@@ -258,6 +252,16 @@ void menuInit()
 
 void menuRun(Screen *screen, int t)
 {
-	inputMenu();
-	updateMenu(screen, t);
+	static int tStart = t;
+
+	int dt = t - tStart;
+
+	updateStars(screen, t);
+
+	update3D(screen, t, dt);
+
+	if (menuFinallyOn) {
+		renderMenu(screen);
+		inputMenu();
+	}
 }

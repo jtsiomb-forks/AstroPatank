@@ -5,8 +5,9 @@
 
 #include "fonts.h"
 #include "game.h"
+#include "types.h"
 
-static unsigned char bitfonts[] = {0,0,0,0,0,0,0,0,4,12,8,24,16,0,32,0,10,18,20,0,0,0,0,0,0,20,126,40,252,80,
+static  bitfonts[] = {0,0,0,0,0,0,0,0,4,12,8,24,16,0,32,0,10,18,20,0,0,0,0,0,0,20,126,40,252,80,
 0,0,6,25,124,32,248,34,28,0,4,12,72,24,18,48,32,0,14,18,20,8,21,34,29,0,32,32,64,0,0,0,
 0,0,16,32,96,64,64,64,32,0,4,2,2,2,6,4,8,0,8,42,28,127,28,42,8,0,0,4,12,62,24,16,
 0,0,0,0,0,0,0,0,32,64,0,0,0,60,0,0,0,0,0,0,0,0,0,0,32,0,4,12,8,24,16,48,
@@ -23,13 +24,13 @@ static unsigned char bitfonts[] = {0,0,0,0,0,0,0,0,4,12,8,24,16,0,32,0,10,18,20,
 40,0,67,36,24,28,36,66,66,0,34,18,22,12,12,8,24,0,31,2,4,4,8,24,62,0};
 
 
-static unsigned char fonts[59*64];
+static uint8 fonts[59*64];
 
-static void drawFont(int xp, int yp, int ch, uint8 colOffset)
+static void drawFont(int xp, int yp, int ch, uint8 colOffset, uint8 *vram)
 {
     if (xp <0 || xp > SCR_W - 8) return;
 
-    unsigned char *vram = (unsigned char*)(0xA0000 + xp + yp * SCR_W);
+    uint8 *dst = vram + xp + yp * SCR_W;
     for (int y=0; y<8; y++)
     {
         int yc = yp + y;
@@ -38,21 +39,21 @@ static void drawFont(int xp, int yp, int ch, uint8 colOffset)
             int yi = y << 3;
             for (int x=0; x<8; x++)
             {
-                unsigned char c = fonts[(ch << 6) + yi + x];
-                if (c!=0) *vram = c + colOffset;
-                vram++;
+                uint8 c = fonts[(ch << 6) + yi + x];
+                if (c!=0) *dst = c + colOffset;
+                dst++;
             }
-            vram-=8;
+            dst-=8;
         }
-        vram+=SCR_W;
+        dst+=SCR_W;
     }
 }
 
-static void drawFontX2(int xp, int yp, int ch, uint8 colOffset)
+static void drawFontX2(int xp, int yp, int ch, uint8 colOffset, uint8 *vram)
 {
     if (xp <0 || xp > SCR_W - 8) return;
 
-    unsigned char *vram = (unsigned char*)(0xA0000 + xp + yp * SCR_W);
+    uint8 *dst = vram + xp + yp * SCR_W;
     for (int y=0; y<16; y++)
     {
         int yc = yp + y;
@@ -61,17 +62,17 @@ static void drawFontX2(int xp, int yp, int ch, uint8 colOffset)
             int yi = (y >> 1) << 3;
             for (int x=0; x<16; x++)
             {
-                unsigned char c = fonts[(ch << 6) + yi + (x >> 1)];
-                if (c!=0) *vram = c + colOffset;
-                vram++;
+                uint8 c = fonts[(ch << 6) + yi + (x >> 1)];
+                if (c!=0) *dst = c + colOffset;
+                dst++;
             }
-            vram-=16;
+            dst-=16;
         }
-        vram+=SCR_W;
+        dst+=SCR_W;
     }
 }
 
-void drawText(int xp, int yp, char *text, bool zoom, uint8 colOffset)
+void drawText(int xp, int yp, char *text, bool zoom, uint8 colOffset, uint8 *vram)
 {	
 	while (char c = *text++) {
         if (c>96 && c<123) {
@@ -80,9 +81,9 @@ void drawText(int xp, int yp, char *text, bool zoom, uint8 colOffset)
 
    		if (c>31 && c<92) {
    		    if (!zoom) {
-                drawFont(xp, yp, c - 32, colOffset);
+                drawFont(xp, yp, c - 32, colOffset, vram);
 			} else {
-                drawFontX2(xp, yp, c - 32, colOffset);
+                drawFontX2(xp, yp, c - 32, colOffset, vram);
 			}
    		}
 
