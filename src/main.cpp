@@ -14,7 +14,7 @@
 #include "musplay.h"
 #include "tinyfont.h"
 
-#define MEM_DEBUG
+//#define MEM_DEBUG
 
 
 static Video *video;
@@ -117,7 +117,7 @@ int main(int argc, char **argv)
 	while(!isGameQuit()) {
 		screen.data = getRenderBuffer(video);
 		gameRun(&screen, getTime());
-		drawFps(video);
+		if (buttonsHeld.select) drawFps(video);
 		updateFrame(video, vsync);
 	}
 

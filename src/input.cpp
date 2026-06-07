@@ -88,6 +88,10 @@ static void keyCommands()
 			buttonsHeld.fire = !released;
 		break;
 
+		case 54:	// Right Shift
+			buttonsHeld.select = !released;
+		break;
+
 		case 28:	// Return
 			buttonsHeld.start = !released;
 		break;

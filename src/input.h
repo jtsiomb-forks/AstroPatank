@@ -9,6 +9,7 @@ typedef struct Buttons
 	bool right;
 	bool up;
 	bool down;
+	bool select;
 	bool start;
 	bool fire;
 	bool map;
