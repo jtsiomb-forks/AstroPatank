@@ -38,7 +38,7 @@
 #define PLAYER_THING_BASE 0
 #define NUM_PLAYERS 1
 
-#define LASER_TIME_MAX 32
+#define LASER_TIME_MAX 24
 #define LASER_THING_BASE (PLAYER_THING_BASE + NUM_PLAYERS)
 #define MAX_LASERS 5
 
@@ -915,6 +915,8 @@ void gameInit()
 	initEngine();
 
 	for (int i=0; i<NUM_MESHES; ++i) {
+		objectMesh[i] = initMeshFromCPCdata(objMeshData[i]);
+
 		int gridScaleMulX = 40;
 		int gridScaleMulY = 40;
 		int gridScaleMulZ = 40;
@@ -924,12 +926,34 @@ void gameInit()
 			gridScaleMulZ = 32;
 		}
 		if (i==OBJ_DRUM) {
+			gridScaleMulX = 28;
+			gridScaleMulY = 24;
+			gridScaleMulZ = 28;
+			uint8 *cols = objectMesh[i]->polyColor;			
+			for (int n=0; n<objectMesh[i]->numPolys; ++n) {
+				cols[n] += 4;
+				if (cols[n] > 6) cols[n] = 10;
+			}
+		}
+
+		if (i==OBJ_CROSS) {
 			gridScaleMulX = 32;
 			gridScaleMulY = 32;
 			gridScaleMulZ = 32;
+			uint8 *cols = objectMesh[i]->polyColor;			
+			for (int n=0; n<objectMesh[i]->numPolys; ++n) {
+				cols[n] += 4;
+				if (cols[n] > 6) cols[n] = 9;
+			}
 		}
 
-		objectMesh[i] = initMeshFromCPCdata(objMeshData[i]);
+		if (i==OBJ_ROMBUS_RING) {
+			uint8 *cols = objectMesh[i]->polyColor;			
+			for (int n=0; n<objectMesh[i]->numPolys; ++n) {
+				cols[n] += 6;
+			}
+		}
+
 		objectMesh[i]->gridScaleX = (objectMesh[i]->gridScaleX * gridScaleMulX) >> 8;
 		objectMesh[i]->gridScaleY = (objectMesh[i]->gridScaleY * gridScaleMulY) >> 8;
 		objectMesh[i]->gridScaleZ = (objectMesh[i]->gridScaleZ * gridScaleMulZ) >> 8;

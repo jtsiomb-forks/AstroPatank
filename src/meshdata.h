@@ -16,7 +16,6 @@ extern int8 objSquareCrossData[];
 extern int8 objSpaceship1Data[];
 extern int8 objTorusData[];
 extern int8 objCubeStarData[];
-extern int8 objSpaceshipFullData[];
 extern int8 objRombusRingData[];
 extern int8 objTorus2Data[];
 extern int8 objEightCubesData[];
