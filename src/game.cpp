@@ -47,13 +47,23 @@
 
 #define NUM_PARTICLES 256
 
-#define MAX_SHIELD 8
+#define MAX_SHIELD 2
 #define MAX_ENERGY 8
 #define MAX_HIT_BLINK 64
 
-static int energy = MAX_ENERGY;
-static int shield = MAX_SHIELD;
-static int playerHit = 0;
+#define ENERGY_SCALER 2
+
+typedef struct PlayerHit
+{
+	bool justHit;
+	uint8 damage;
+	uint8 warmUp;
+} PlayerHit;
+
+static int energy = MAX_ENERGY * ENERGY_SCALER;
+static int shield = MAX_SHIELD * ENERGY_SCALER;
+
+PlayerHit playerHit = { false, 0, 0 };
 
 static int mapZ[] = { GROUND_Z, MID_Z, FAR_Z, MAP_OUT_Z };
 static uint8 mapIndex = 1;
@@ -111,7 +121,7 @@ static int playerLaserTime = 0;
 static Vec3 centeredViewPos;
 static int viewZoomSpeed = 4;
 
-static bool isInGame = false;
+static bool isInGame = true;
 static bool gameQuit = false;
 
 
@@ -171,6 +181,15 @@ static Vec3 getVelocityFromAngle(int angle, int scale)
 	vel.z = 0;
 
 	return vel;
+}
+
+static void damagePlayer(uint8 damage, uint8 warmUp)
+{
+	if (playerHit.warmUp!=0) return;
+
+	playerHit.justHit = true;
+	playerHit.warmUp = warmUp;
+	playerHit.damage = damage;
 }
 
 static bool checkThingThingCollision(GameThing *gt1, GameThing *gt2)
@@ -243,8 +262,8 @@ static void updateNarcs()
 			gt->rot.y += (((i & 7) + 1) << 3);
 			gt->rot.z += ((i & 15) << 2);
 
-			if (playerHit==0 && checkThingThingCollision(gt, gtPlayer)) {
-				playerHit = MAX_HIT_BLINK;
+			if (checkThingThingCollision(gt, gtPlayer)) {
+				damagePlayer(ENERGY_SCALER, MAX_HIT_BLINK);
 			}
 		}
 	}
@@ -307,21 +326,21 @@ static void updatePlayerHit()
 	GameThing *gt = &thing[PLAYER_THING_BASE];
 	uint8 *spaceshipCols = gt->mesh->polyColor;
 
-	if (playerHit > 0) {
-		if (playerHit == MAX_HIT_BLINK) {
-			if (shield > 0) {
-				shield--;
-			} else {
-				if (energy > 0) {
-					energy--;
-				}
-			}
-			playSound(SOUND_PLAYER_HIT);
+	if (playerHit.justHit) {
+		if (shield == 0) {
+			energy -= playerHit.damage;
+			if (energy < 0) energy = 0;
+		} else {
+			shield -= playerHit.damage;
+			if (shield < 0) shield = 0;
 		}
-		--playerHit;
+		playSound(SOUND_PLAYER_HIT);
+		playerHit.justHit = false;
+	}
 
+	if (playerHit.warmUp!=0) {
 		// Ugly lazy hack for now
-		if ((playerHit & 15) > 7) {
+		if ((playerHit.warmUp & 15) > 7) {
 			spaceshipCols[0] = 8;
 			spaceshipCols[1] = 8;
 			spaceshipCols[2] = 8;
@@ -330,6 +349,7 @@ static void updatePlayerHit()
 			spaceshipCols[1] = 4;
 			spaceshipCols[2] = 2;
 		}
+		--playerHit.warmUp;
 	}
 }
 
@@ -522,6 +542,7 @@ static void input3D(int dt)
 	if (checkThingMapCollision(gt)) {
 		pos->x = prevPlayerPosX;
 		playerThrustX = -(playerThrustX * 12) >> 4;
+		if (shield==0) damagePlayer(ENERGY_SCALER/2, MAX_HIT_BLINK/2);
 		playSound(SOUND_PLAYER_BOUNCE);
 	}
 
@@ -541,6 +562,7 @@ static void input3D(int dt)
 	if (checkThingMapCollision(gt)) {
 		pos->y = prevPlayerPosY;
 		playerThrustY = -(playerThrustY * 12) >> 4;
+		if (shield==0) damagePlayer(ENERGY_SCALER/2, MAX_HIT_BLINK/2);
 		playSound(SOUND_PLAYER_BOUNCE);
 	}
 
@@ -679,16 +701,16 @@ static void updateScene3D(Screen *screen, int t)
 
 static void drawBar(uint8 bx, uint8 by, uint8 colbase, int value, uint8 *vram)
 {
-	uint32 *vram32 = (uint32*)(vram + (by * 8) * SCR_W + bx*8);
+	uint16 *vram16 = (uint16*)(vram + (by * 8) * SCR_W + bx*8);
 
 	value *= 3;
 	for (int y=0; y<4; ++y) {
 		uint8 c = colbase * 16 - 4*y - 1;
-		uint32 c32 = (c << 24) | (c << 16) | (c << 8) | c;
+		uint16 c16 = (c << 8) | c;
 		for (int x=0; x<value; x++) {
-			*(vram32 + x) = c32;
+			*(vram16 + x) = c16;
 		}
-		vram32 += SCR_W / 4;
+		vram16 += SCR_W / 2;
 	}
 }
 
@@ -696,8 +718,8 @@ static void updateUI(Screen *screen)
 {
 	uint8 *vram = (uint8*)screen->data;
 
-	drawBar(1,1,9,energy,vram);
-	drawBar(1,2,10,shield,vram);
+	drawBar(1,1,9,energy, vram);
+	drawBar(1,2,10,shield, vram);
 }
 
 static void clearScreen(Screen *screen)
