@@ -76,7 +76,7 @@
 
 #define ENERGY_SCALER 2
 
-#define MAX_RINGS_TO_FINISH 16
+#define MAX_RINGS_TO_FINISH 8
 
 #define ENEMY_KILL_SCORE 50
 #define RING_PICKUP_SCORE 100
@@ -98,6 +98,7 @@ static int shield = MAX_SHIELD * ENERGY_SCALER;
 static int lives = 3;
 
 static bool gameOver = false;
+static bool youWin = false;
 
 PlayerHit playerHit = { false, 0, 0 };
 
@@ -322,6 +323,9 @@ static void incScore(int value)
 static void incRings()
 {
 	rings++;
+	if (rings == MAX_RINGS_TO_FINISH) {
+		youWin = true;
+	}
 	mustUpdateRings = true;
 }
 
@@ -407,6 +411,11 @@ static void updateParticles()
 static void updatePlayerHit()
 {
 	GameThing *gtPlayer = &thing[PLAYER_THING_BASE];
+
+	if (youWin) {
+		gtPlayer->alive = false; // just to dissapear and pause
+		return;
+	}
 
 	if (energy==0) {
 		if (gtPlayer->alive) {
@@ -966,6 +975,8 @@ static void updateUI(Screen *screen, int t)
 
 	if (gameOver) {
 		drawText(16, 88, "GAME OVER", 32 + (((sinTab[t & (SINTAB_SIZE - 1)] * 32) >> AMPLITUDE_BITS)), 2, vram);
+	} else if (youWin) {
+		drawText(32, 88, "YOU WIN!", 64 + (((sinTab[t & (SINTAB_SIZE - 1)] * 32) >> AMPLITUDE_BITS)), 2, vram);
 	}
 }
 
