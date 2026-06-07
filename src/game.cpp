@@ -54,6 +54,9 @@
 #define WEAPON_BONUS_THING_BASE (SHIELD_BONUS_THING_BASE + MAX_SHIELD_BONUS)
 #define MAX_WEAPON_BONUS 1
 
+#define GEM_BONUS_THING_BASE (WEAPON_BONUS_THING_BASE + MAX_WEAPON_BONUS)
+#define MAX_GEM_BONUS 4
+
 
 #define NUM_PARTICLES 256
 
@@ -413,6 +416,15 @@ static void updateItems()
 			};
 		}
 	}
+
+	for (int i=0; i<MAX_GEM_BONUS; ++i) {
+		GameThing *gt = &thing[GEM_BONUS_THING_BASE + i];
+		if (gt->alive) {
+			gt->rot += rotVel;
+			if (gtPlayer->alive && checkThingThingCollision(gt, gtPlayer)) {
+			};
+		}
+	}
 }
 
 static void updateGameplay(int t, int dt)
@@ -522,6 +534,10 @@ static void initThings()
 
 	for (int i=0; i<MAX_WEAPON_BONUS; ++i) {
 		setRandomThingInMap(&thing[WEAPON_BONUS_THING_BASE + i], objectMesh[OBJ_GLENZ], 0, true);
+	}
+
+	for (int i=0; i<MAX_GEM_BONUS; ++i) {
+		setRandomThingInMap(&thing[GEM_BONUS_THING_BASE + i], objectMesh[OBJ_ROMBUS_RING], 0, true);
 	}
 }
 
