@@ -63,7 +63,7 @@
 #define THRUST_BITS 6
 #define THRUST_MAX (1 << THRUST_BITS)
 
-#define MAX_SHIELD 8
+#define MAX_SHIELD 2
 #define MAX_ENERGY 8
 #define MAX_HIT_BLINK 64
 
@@ -395,6 +395,12 @@ static void updateItems()
 		if (gt->alive) {
 			gt->rot += rotVel;
 			if (gtPlayer->alive && checkThingThingCollision(gt, gtPlayer)) {
+				if (energy < MAX_ENERGY * ENERGY_SCALER) {
+					energy += 2 * ENERGY_SCALER;
+					if (energy > MAX_ENERGY * ENERGY_SCALER) energy = MAX_ENERGY * ENERGY_SCALER;
+					gt->alive = false;
+					playSound(SOUND_HEALTH_PICKUP);
+				}
 			};
 		}
 	}
@@ -404,6 +410,12 @@ static void updateItems()
 		if (gt->alive) {
 			gt->rot += rotVel;
 			if (gtPlayer->alive && checkThingThingCollision(gt, gtPlayer)) {
+				if (shield < MAX_SHIELD * ENERGY_SCALER) {
+					shield += 4 * ENERGY_SCALER;
+					if (shield > MAX_SHIELD * ENERGY_SCALER) shield = MAX_SHIELD * ENERGY_SCALER;
+					gt->alive = false;
+					playSound(SOUND_HEALTH_PICKUP);
+				}
 			};
 		}
 	}
@@ -413,6 +425,8 @@ static void updateItems()
 		if (gt->alive) {
 			gt->rot += rotVel;
 			if (gtPlayer->alive && checkThingThingCollision(gt, gtPlayer)) {
+				gt->alive = false;
+				playSound(SOUND_POWER_PICKUP);
 			};
 		}
 	}
@@ -422,6 +436,8 @@ static void updateItems()
 		if (gt->alive) {
 			gt->rot += rotVel;
 			if (gtPlayer->alive && checkThingThingCollision(gt, gtPlayer)) {
+				gt->alive = false;
+				playSound(SOUND_GEM_PICKUP);
 			};
 		}
 	}
@@ -450,7 +466,7 @@ static void spawnLaser(Vec3 &pos, Vec3 &rot, Vec3 &vel)
 	playSound(SOUND_FIRE);
 
 	//SOUND_GEM_PICKUP, 
-	//SOUND_CHICKEN_PICKUP,
+	//SOUND_HEALTH_PICKUP,
 	//SOUND_POWER_PICKUP, 
 }
 
@@ -846,7 +862,7 @@ static void initSoundsBpr()
 	setupSound(12, 6144, 23000, SOUND_PLAYER_BOUNCE);
 
 	setupSound(8, 768, 3144, SOUND_GEM_PICKUP);
-	setupSound(12, 1512, 6144, SOUND_CHICKEN_PICKUP);
+	setupSound(12, 1512, 6144, SOUND_HEALTH_PICKUP);
 	setupSound(40, 1280, 16384, SOUND_POWER_PICKUP);
 	setupSound(6, 6144, 28000, SOUND_LASER_PUFF);
 }
