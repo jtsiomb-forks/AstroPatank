@@ -103,12 +103,9 @@ static bool gameOver = false;
 static bool gateOpened = false;
 static bool youWarp = false;
 static bool youWin = false;
+static int winZoom = 0;
 
 PlayerHit playerHit = { false, 0, 0 };
-
-static int mapZ[] = { GROUND_Z, MID_Z, FAR_Z, MAP_OUT_Z };
-static uint8 mapIndex = 1;
-
 
 
 typedef struct GameThing
@@ -164,44 +161,12 @@ static int playerLaserTime = 0;
 
 static Vec3 centeredViewPos;
 
+static int mapZ[] = { GROUND_Z, MID_Z, FAR_Z, MAP_OUT_Z };
+static uint8 mapIndex = 1;
+
 static bool isInGame = false;
 static bool gameQuit = false;
 
-
-void switchGameMusic()
-{
-#ifdef SOUND_ON
-	stopMusPlay();
-
-	if (isInGame) {
-		loadMusFile(MUS_GAME);
-		playMusFile(MUS_GAME);
-	} else {
-		loadMusFile(MUS_INTRO);
-		playMusFile(MUS_INTRO);
-	}
-#endif
-}
-
-bool isGameQuit()
-{
-	return gameQuit;
-}
-
-void setGameQuit(bool quit)
-{
-	gameQuit = quit;
-}
-
-void setIsInGame(bool inGame)
-{
-	if (isInGame==inGame) return;
-	isInGame = inGame;
-
-	switchGameMusic();
-
-	playerLaserTime = LASER_TIME_MAX;
-}
 
 static int getRandomAntiSpawn(int antiSpawnBase)
 {
@@ -426,15 +391,13 @@ static void updateParticles()
 
 static void updatePlayerHit()
 {
-	static int winZoom = 0;
-
 	GameThing *gtPlayer = &thing[PLAYER_THING_BASE];
 
 	if (checkPlayerGateCollision()) youWarp = true;
 
 	if (youWarp) {
 		winZoom += 32;
-		if (mapIndex==MAP_INDEX_SIZE-1) winZoom += 96;
+		if (mapIndex==MAP_INDEX_SIZE-1) winZoom += 64;
 		gtPlayer->pos.x = ((TILEMAP_WIDTH / 2) * TILE_SIZE + TILE_SIZE / 2) << PPOS_BITS;
 		gtPlayer->pos.y = ((TILEMAP_HEIGHT / 2) * TILE_SIZE + TILE_SIZE / 2) << PPOS_BITS;
 		gtPlayer->pos.z = winZoom << PPOS_BITS;
@@ -709,137 +672,6 @@ static void initThings()
 	}
 }
 
-static void input3D(int dt)
-{
-	static bool rMapPressed = false;
-
-	if (buttonsHeld.escape) {
-		setIsInGame(false);
-	}
-
-	if (!youWarp && (buttonsHeld.map & !rMapPressed)) {
-		mapIndex = (mapIndex + 1) % MAP_INDEX_SIZE;
-
-		uint8 tileRenderType = TILE_RENDER_MESH;
-		if (mapIndex==MAP_INDEX_SIZE-1) tileRenderType = TILE_RENDER_QUADS;
-		setTileRenderType(tileRenderType);
-
-		centeredViewPos.z = mapZ[mapIndex];
-	}
-
-	rMapPressed = buttonsHeld.map;
-
-
-	GameThing *gt = &thing[PLAYER_THING_BASE];
-	if (!gt->alive || youWarp) return;
-
-	Vec3 *pos = &gt->pos;
-	Vec3 *rot = &gt->rot;
-
-	int prevPlayerPosX = pos->x;
-	int prevPlayerPosY = pos->y;
-
-	int tAng = (dt*playerAngleSpeed) << PPOS_BITS;
-
-	int playerAngle = gt->rot.y;
-	int pAngle = playerAngle << PPOS_BITS;
-
-	if (buttonsHeld.down) {
-		tAng = -tAng;
-	}
-	
-	if (buttonsHeld.left) {
-		pAngle += tAng;
-	}
-	if (buttonsHeld.right) {
-		pAngle -= tAng;
-	}
-	playerAngle = pAngle >> PPOS_BITS;
-	gt->rot.y = playerAngle;
-
-	if (buttonsHeld.up) {
-		if (playerThrustX < THRUST_MAX) {
-			playerThrustX++;
-		}
-		if (playerThrustY < THRUST_MAX) {
-			playerThrustY++;
-		}
-	} else if (buttonsHeld.down) {
-		if (playerThrustX > -(THRUST_MAX / 2)) {
-			playerThrustX--;
-		}
-		if (playerThrustY > -(THRUST_MAX / 2)) {
-			playerThrustY--;
-		}
-	} else {
-		if (playerThrustX < 0) {
-			playerThrustX++;
-		} else if (playerThrustX > 0) {
-			playerThrustX--;
-		}
-
-		if (playerThrustY < 0) {
-			playerThrustY++;
-		} else if (playerThrustY > 0) {
-			playerThrustY--;
-		}
-	}
-
-	if (buttonsHeld.fire && playerLaserTime==0) {
-		Vec3 bPos;
-		Vec3 bVel;
-		Vec3 bRot;
-
-		bVel = getVelocityFromAngle(playerAngle, 80 << PPOS_BITS);
-
-		bPos.x = pos->x + bVel.x;
-		bPos.y = pos->y + bVel.y;
-		bPos.z = pos->z;
-
-		bRot.x = SINTAB_SIZE >> 2;
-		bRot.y = playerAngle;
-		bRot.z = 0;
-
-		spawnLaser(bPos, bRot, bVel);
-
-		playerLaserTime = LASER_TIME_MAX - 4 * power;
-	}
-
-	if (playerThrustX != 0) {
-		int tMov = (dt*playerMoveSpeed*playerThrustX) << (PPOS_BITS - THRUST_BITS);
-		int tMovX = (tMov * sinTab[playerAngle & (SINTAB_SIZE - 1)]) >> AMPLITUDE_BITS;
-
-		pos->x -= tMovX;
-	}
-
-	if (checkThingMapCollision(gt)) {
-		pos->x = prevPlayerPosX;
-		playerThrustX = -(playerThrustX * 12) >> 4;
-		if (shield==0) damagePlayer(ENERGY_SCALER/2, MAX_HIT_BLINK/2);
-		playSound(SOUND_PLAYER_BOUNCE);
-	}
-
-	if (playerThrustY != 0) {
-		int tMov = (dt*playerMoveSpeed*playerThrustY) << (PPOS_BITS - THRUST_BITS);
-		int tMovY = (tMov * sinTab[(playerAngle - (SINTAB_SIZE / 4)) & (SINTAB_SIZE - 1)]) >> AMPLITUDE_BITS;
-
-		pos->y += tMovY;
-	}
-
-	if (playerThrustX != 0 || playerThrustY != 0) {
-		Vec3 pos0 = Vec3(prevPlayerPosX, prevPlayerPosY, 0);
-		Vec3 vel0 = getVelocityFromAngle(getRand(0, SINTAB_SIZE-1), 2048);
-		spawnParticle(pos0, vel0, 32, 16);
-	}
-
-	if (checkThingMapCollision(gt)) {
-		pos->y = prevPlayerPosY;
-		playerThrustY = -(playerThrustY * 12) >> 4;
-		if (shield==0) damagePlayer(ENERGY_SCALER/2, MAX_HIT_BLINK/2);
-		playSound(SOUND_PLAYER_BOUNCE);
-	}
-}
-
 static void setupPalette3D()
 {
 	const int sh1 = 1;
@@ -1056,6 +888,206 @@ static void initSoundsBpr()
 	setupSound(12, 1512, 6144, SOUND_HEALTH_PICKUP);
 	setupSound(40, 1280, 16384, SOUND_POWER_PICKUP);
 	setupSound(6, 6144, 28000, SOUND_LASER_PUFF);
+}
+
+static void restartGameIfEnded()
+{
+	if (!gameOver && !youWin) return;
+
+	mustUpdateScore = true;
+	mustUpdateRings = true;
+	mustUpdateLives = true;
+	mustUpdatePower = true;
+	score = 0;
+	rings = 0;
+	energy = MAX_ENERGY * ENERGY_SCALER;
+	shield = MAX_SHIELD * ENERGY_SCALER;
+	power = 0;
+	lives = 3;
+
+	gameOver = false;
+	gateOpened = false;
+	youWarp = false;
+	youWin = false;
+	winZoom = 0;
+	mapIndex = 1;
+	centeredViewPos.z = mapZ[mapIndex];
+
+	playerHit.justHit = false;
+	playerHit.damage = 0;
+	playerHit.warmUp = 0;
+	playerThrustX = 0;
+	playerThrustY = 0;
+
+	initThings();
+}
+
+void switchGameMusic()
+{
+#ifdef SOUND_ON
+	stopMusPlay();
+
+	if (isInGame) {
+		loadMusFile(MUS_GAME);
+		playMusFile(MUS_GAME);
+	} else {
+		loadMusFile(MUS_INTRO);
+		playMusFile(MUS_INTRO);
+	}
+#endif
+}
+
+bool isGameQuit()
+{
+	return gameQuit;
+}
+
+void setGameQuit(bool quit)
+{
+	gameQuit = quit;
+}
+
+void setIsInGame(bool inGame)
+{
+	if (isInGame==inGame) return;
+	isInGame = inGame;
+
+	switchGameMusic();
+
+	if (inGame) {
+		restartGameIfEnded();
+	}
+}
+
+static void input3D(int dt)
+{
+	static bool rMapPressed = false;
+
+	if (buttonsHeld.escape) {
+		setIsInGame(false);
+	}
+
+	if (!youWarp && (buttonsHeld.map & !rMapPressed)) {
+		mapIndex = (mapIndex + 1) % MAP_INDEX_SIZE;
+
+		uint8 tileRenderType = TILE_RENDER_MESH;
+		if (mapIndex==MAP_INDEX_SIZE-1) tileRenderType = TILE_RENDER_QUADS;
+		setTileRenderType(tileRenderType);
+
+		centeredViewPos.z = mapZ[mapIndex];
+	}
+
+	rMapPressed = buttonsHeld.map;
+
+
+	GameThing *gt = &thing[PLAYER_THING_BASE];
+	if (!gt->alive || youWarp) return;
+
+	Vec3 *pos = &gt->pos;
+	Vec3 *rot = &gt->rot;
+
+	int prevPlayerPosX = pos->x;
+	int prevPlayerPosY = pos->y;
+
+	int tAng = (dt*playerAngleSpeed) << PPOS_BITS;
+
+	int playerAngle = gt->rot.y;
+	int pAngle = playerAngle << PPOS_BITS;
+
+	if (buttonsHeld.down) {
+		tAng = -tAng;
+	}
+	
+	if (buttonsHeld.left) {
+		pAngle += tAng;
+	}
+	if (buttonsHeld.right) {
+		pAngle -= tAng;
+	}
+	playerAngle = pAngle >> PPOS_BITS;
+	gt->rot.y = playerAngle;
+
+	if (buttonsHeld.up) {
+		if (playerThrustX < THRUST_MAX) {
+			playerThrustX++;
+		}
+		if (playerThrustY < THRUST_MAX) {
+			playerThrustY++;
+		}
+	} else if (buttonsHeld.down) {
+		if (playerThrustX > -(THRUST_MAX / 2)) {
+			playerThrustX--;
+		}
+		if (playerThrustY > -(THRUST_MAX / 2)) {
+			playerThrustY--;
+		}
+	} else {
+		if (playerThrustX < 0) {
+			playerThrustX++;
+		} else if (playerThrustX > 0) {
+			playerThrustX--;
+		}
+
+		if (playerThrustY < 0) {
+			playerThrustY++;
+		} else if (playerThrustY > 0) {
+			playerThrustY--;
+		}
+	}
+
+	if (buttonsHeld.fire && playerLaserTime==0) {
+		Vec3 bPos;
+		Vec3 bVel;
+		Vec3 bRot;
+
+		bVel = getVelocityFromAngle(playerAngle, 80 << PPOS_BITS);
+
+		bPos.x = pos->x + bVel.x;
+		bPos.y = pos->y + bVel.y;
+		bPos.z = pos->z;
+
+		bRot.x = SINTAB_SIZE >> 2;
+		bRot.y = playerAngle;
+		bRot.z = 0;
+
+		spawnLaser(bPos, bRot, bVel);
+
+		playerLaserTime = LASER_TIME_MAX - 4 * power;
+	}
+
+	if (playerThrustX != 0) {
+		int tMov = (dt*playerMoveSpeed*playerThrustX) << (PPOS_BITS - THRUST_BITS);
+		int tMovX = (tMov * sinTab[playerAngle & (SINTAB_SIZE - 1)]) >> AMPLITUDE_BITS;
+
+		pos->x -= tMovX;
+	}
+
+	if (checkThingMapCollision(gt)) {
+		pos->x = prevPlayerPosX;
+		playerThrustX = -(playerThrustX * 12) >> 4;
+		if (shield==0) damagePlayer(ENERGY_SCALER/2, MAX_HIT_BLINK/2);
+		playSound(SOUND_PLAYER_BOUNCE);
+	}
+
+	if (playerThrustY != 0) {
+		int tMov = (dt*playerMoveSpeed*playerThrustY) << (PPOS_BITS - THRUST_BITS);
+		int tMovY = (tMov * sinTab[(playerAngle - (SINTAB_SIZE / 4)) & (SINTAB_SIZE - 1)]) >> AMPLITUDE_BITS;
+
+		pos->y += tMovY;
+	}
+
+	if (playerThrustX != 0 || playerThrustY != 0) {
+		Vec3 pos0 = Vec3(prevPlayerPosX, prevPlayerPosY, 0);
+		Vec3 vel0 = getVelocityFromAngle(getRand(0, SINTAB_SIZE-1), 2048);
+		spawnParticle(pos0, vel0, 32, 16);
+	}
+
+	if (checkThingMapCollision(gt)) {
+		pos->y = prevPlayerPosY;
+		playerThrustY = -(playerThrustY * 12) >> 4;
+		if (shield==0) damagePlayer(ENERGY_SCALER/2, MAX_HIT_BLINK/2);
+		playSound(SOUND_PLAYER_BOUNCE);
+	}
 }
 
 void gameInit()
