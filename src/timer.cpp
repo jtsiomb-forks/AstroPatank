@@ -170,7 +170,7 @@ void drawFps(Video *video)
 		startingFpsTime = getTime();
 		nFrames = 0;
 	}
-	drawNumber(SCR_W - 20, 4, fps, video);
+	drawNumber(2, 2, fps, video);
 }
 
 void initTimer()

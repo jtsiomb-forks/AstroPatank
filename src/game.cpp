@@ -33,7 +33,7 @@
 
 #define PPOS_BITS 8
 
-#define NUM_THINGS 32
+#define NUM_THINGS 64
 
 #define PLAYER_THING_BASE 0
 #define NUM_PLAYERS 1
@@ -43,7 +43,7 @@
 #define MAX_LASERS 7
 
 #define NARC_THING_BASE (LASER_THING_BASE + MAX_LASERS)
-#define MAX_NARCS 8
+#define MAX_NARCS 12
 
 #define ENERGY_BONUS_THING_BASE (NARC_THING_BASE + MAX_NARCS)
 #define MAX_ENERGY_BONUS 3
@@ -58,19 +58,19 @@
 #define MAX_RING_BONUS 4
 
 
-
+#define ANTI_SPAWN_PLAYER 128
 #define ANTI_SPAWN_NARC 256
-#define ANTI_SPAWN_ENERGY 1024
-#define ANTI_SPAWN_RING 512
+#define ANTI_SPAWN_ENERGY 512
+#define ANTI_SPAWN_RING 256
 #define ANTI_SPAWN_WEAPON 1024
-#define SPAWN_FULL 512
+#define SPAWN_FULL 128
 
 #define NUM_PARTICLES 256
 
 #define THRUST_BITS 6
 #define THRUST_MAX (1 << THRUST_BITS)
 
-#define MAX_SHIELD 2
+#define MAX_SHIELD 8
 #define MAX_ENERGY 8
 #define MAX_HIT_BLINK 64
 
@@ -90,10 +90,12 @@ typedef struct PlayerHit
 
 static bool mustUpdateScore = true;
 static bool mustUpdateRings = true;
+static bool mustUpdateLives = true;
 static int score = 0;
 static int rings = 0;
 static int energy = MAX_ENERGY * ENERGY_SCALER;
 static int shield = MAX_SHIELD * ENERGY_SCALER;
+static int lives = 3;
 
 PlayerHit playerHit = { false, 0, 0 };
 
@@ -153,7 +155,6 @@ static int currentLaser = 0;
 static int playerLaserTime = 0;
 
 static Vec3 centeredViewPos;
-static int viewZoomSpeed = 4;
 
 static bool isInGame = true;
 static bool gameQuit = false;
@@ -409,7 +410,12 @@ static void updatePlayerHit()
 			spawnParticleMiniExplosion(gtPlayer->pos, NUM_PARTICLES, 96, 80, 3);
 			playSound(SOUND_PLAYER_DEAD);
 			gtPlayer->alive = false;
-			gtPlayer->spawn = -4096;
+			if (lives > 1) {
+				gtPlayer->spawn = -ANTI_SPAWN_PLAYER;
+			} else {
+				lives = 0;
+				mustUpdateLives = true;
+			}
 		}
 		return;
 	}
@@ -519,6 +525,22 @@ static void updateSpawning()
 			}
 			if (gt->spawn == SPAWN_FULL) {
 				gt->alive = true;
+				if (i==PLAYER_THING_BASE) {
+					if (--lives>0) {
+						energy = MAX_ENERGY * ENERGY_SCALER;
+						shield = MAX_SHIELD * ENERGY_SCALER;
+
+						playerHit.justHit = false;
+						playerHit.damage = 0;
+						playerHit.warmUp = 0;
+						playerThrustX = 0;
+						playerThrustY = 0;
+					} else {
+						lives = 0;
+						gt->alive = false;
+					}
+					mustUpdateLives = true;
+				}
 			}
 		}
 	}
@@ -645,7 +667,6 @@ static void input3D(int dt)
 	int prevPlayerPosY = pos->y;
 
 	int tAng = (dt*playerAngleSpeed) << PPOS_BITS;
-	int tZoom = (dt*viewZoomSpeed) << PPOS_BITS;
 
 	int playerAngle = gt->rot.y;
 	int pAngle = playerAngle << PPOS_BITS;
@@ -872,6 +893,7 @@ static void drawBar(uint8 bx, uint8 by, uint8 colbase, int value, uint8 *vram)
 
 static void updateUI(Screen *screen)
 {
+	static char txtLives[10];
 	static char txtScore[16];
 	static char txtRings[10];
 
@@ -879,6 +901,12 @@ static void updateUI(Screen *screen)
 
 	drawBar(1,1,9,energy, vram);
 	drawBar(1,2,10,shield, vram);
+
+	if (mustUpdateLives) {
+		sprintf(txtLives, "Lives: %d\n", lives);
+		mustUpdateLives = false;
+	}
+	drawText(SCR_W - 76, 8, txtLives, false, 64, vram);
 
 	if (mustUpdateScore) {
 		sprintf(txtScore, "Score: %d\n", score);
