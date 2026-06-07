@@ -289,7 +289,7 @@ static void drawRectangleLines(int x0, int y0, int x1, int y1, uint8 color, uint
 		};
 
 		dst = (uint8*)dst32;
-		while(length-- > 0) {
+		while(length-- >= 0) {
 			*dst++ = color;
 		};
 	};
@@ -520,25 +520,39 @@ static void renderTilemap3dLayerQuads(uint8 layer, uint8 *vram)
 	}
 }
 
-static void renderTilemap3dLayerLines(uint8 color, uint8 *tmap, uint8 *vram)
+static void renderTilemap3dLayerLines(uint8 color, uint8 *tmap, uint8 *vram, bool special)
 {
+	static int tPortal = 0;
+
 	int x0 = tmapGridInfo.x0;
 	int y0 = tmapGridInfo.y0;
 	int x1 = tmapGridInfo.x1;
 	int y1 = tmapGridInfo.y1;
 
 	int step = tmapGridInfo.tileStep;
-	int ys = tmapGridInfo.ys0;
-	for (int y=y0; y<y1; ++y) {
-		int xs = tmapGridInfo.xs0;
-		for (int x=x0; x<x1; ++x) {
-			if (tmap[x]) {
-				drawRectangleLines(xs,ys, xs+step, ys+step, color, vram);
-			}
-			xs += step;
+
+	if (special) {
+		const int centerX = TILEMAP_WIDTH / 2;
+		const int centerY = TILEMAP_HEIGHT / 2;
+		if (centerX >= x0 && centerX < x1 && centerY >= y0 && centerY < y1) {
+			int xs = tmapGridInfo.xs0 + (centerX - x0) * step;
+			int ys = tmapGridInfo.ys0 + (centerY - y0) * step;
+			drawRectangleLines(xs,ys, xs+step, ys+step, color + ((tPortal >> 4) & 15), vram);
 		}
-		ys += step;
-		tmap += TILEMAP_WIDTH;
+		tPortal++;
+	} else {
+		int ys = tmapGridInfo.ys0;
+		for (int y=y0; y<y1; ++y) {
+			int xs = tmapGridInfo.xs0;
+			for (int x=x0; x<x1; ++x) {
+				if (tmap[x]) {
+					drawRectangleLines(xs,ys, xs+step, ys+step, color, vram);
+				}
+				xs += step;
+			}
+			ys += step;
+			tmap += TILEMAP_WIDTH;
+		}
 	}
 }
 
@@ -564,7 +578,7 @@ static void renderTilemap3dLayerDots(uint8 color, uint8 *tmap, uint8 *vram)
 	}
 }
 
-void renderTilemap3dLayer(Vec3 *pos, uint8 layer, Screen *screen)
+void renderTilemap3dLayer(Vec3 *pos, uint8 layer, Screen *screen, bool extra)
 {
 	updateTilemapEdges(pos, layer);
 
@@ -580,7 +594,7 @@ void renderTilemap3dLayer(Vec3 *pos, uint8 layer, Screen *screen)
 		break;
 
 		case TILE_RENDER_LINES:
-			renderTilemap3dLayerLines(color,tmap,vram);
+			renderTilemap3dLayerLines(color,tmap,vram, false);
 		break;
 
 		case TILE_RENDER_QUADS:
@@ -590,5 +604,9 @@ void renderTilemap3dLayer(Vec3 *pos, uint8 layer, Screen *screen)
 		case TILE_RENDER_MESH:
 			renderTilemap3DLayerMesh(layer, vram);
 		break;
+	}
+
+	if (extra) {
+		renderTilemap3dLayerLines(color,tmap,vram, true);
 	}
 }

@@ -31,7 +31,7 @@ enum {
 #define GET_Z_AT_LAYER(i) (TILE_HEIGHT * (i))
 
 void tilemap3dInit();
-void renderTilemap3dLayer(Vec3 *pos, uint8 layer, Screen *screen);
+void renderTilemap3dLayer(Vec3 *pos, uint8 layer, Screen *screen, bool extra);
 
 void setTileRenderType(uint8 renderType);
 

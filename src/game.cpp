@@ -55,7 +55,7 @@
 #define MAX_WEAPON_BONUS 1
 
 #define RING_BONUS_THING_BASE (WEAPON_BONUS_THING_BASE + MAX_WEAPON_BONUS)
-#define MAX_RING_BONUS 6
+#define MAX_RING_BONUS 16
 
 
 #define ANTI_SPAWN_PLAYER 128
@@ -70,13 +70,13 @@
 #define THRUST_BITS 6
 #define THRUST_MAX (1 << THRUST_BITS)
 
-#define MAX_SHIELD 1
-#define MAX_ENERGY 1
+#define MAX_SHIELD 8
+#define MAX_ENERGY 8
 #define MAX_HIT_BLINK 64
 
 #define ENERGY_SCALER 2
 
-#define MAX_RINGS_TO_FINISH 8
+#define MAX_RINGS_TO_FINISH 2
 
 #define ENEMY_KILL_SCORE 50
 #define RING_PICKUP_SCORE 100
@@ -98,6 +98,7 @@ static int shield = MAX_SHIELD * ENERGY_SCALER;
 static int lives = 3;
 
 static bool gameOver = false;
+static bool gateOpened = false;
 static bool youWin = false;
 
 PlayerHit playerHit = { false, 0, 0 };
@@ -281,6 +282,18 @@ static bool checkThingMapCollision(GameThing *gt)
 	return (tmap[ty0*TILEMAP_WIDTH+tx0] || tmap[ty0*TILEMAP_WIDTH+tx1] || tmap[ty1*TILEMAP_WIDTH+tx0] || tmap[ty1*TILEMAP_WIDTH+tx1]);
 }
 
+static bool checkPlayerGateCollision()
+{
+	if (!gateOpened) return false;
+
+	GameThing *gtPlayer = &thing[PLAYER_THING_BASE];
+
+	int posX = (gtPlayer->pos.x >> PPOS_BITS) / TILE_SIZE;
+	int posY = (gtPlayer->pos.y >> PPOS_BITS) / TILE_SIZE;
+
+	return (posX == TILEMAP_WIDTH / 2) && (posY == TILEMAP_HEIGHT / 2);
+}
+
 static void updateNarcs()
 {
 	GameThing *gtPlayer = &thing[PLAYER_THING_BASE];
@@ -323,8 +336,8 @@ static void incScore(int value)
 static void incRings()
 {
 	rings++;
-	if (rings == MAX_RINGS_TO_FINISH) {
-		youWin = true;
+	if (rings >= MAX_RINGS_TO_FINISH) {
+		gateOpened = true;
 	}
 	mustUpdateRings = true;
 }
@@ -411,6 +424,8 @@ static void updateParticles()
 static void updatePlayerHit()
 {
 	GameThing *gtPlayer = &thing[PLAYER_THING_BASE];
+
+	if (checkPlayerGateCollision()) youWin = true;
 
 	if (youWin) {
 		gtPlayer->alive = false; // just to dissapear and pause
@@ -916,7 +931,7 @@ static void updateScene3D(Screen *screen, int t)
 
 	for (int n=0; n<TILEMAP_LAYERS+1; ++n) {
 		if (n < TILEMAP_LAYERS) {
-			renderTilemap3dLayer(&centeredViewPos, n, screen);
+			renderTilemap3dLayer(&centeredViewPos, n, screen, gateOpened);
 		}
 
 		if (n==0) renderParticles((uint8*)screen->data);
@@ -977,6 +992,10 @@ static void updateUI(Screen *screen, int t)
 		drawText(16, 88, "GAME OVER", 32 + (((sinTab[t & (SINTAB_SIZE - 1)] * 32) >> AMPLITUDE_BITS)), 2, vram);
 	} else if (youWin) {
 		drawText(32, 88, "YOU WIN!", 64 + (((sinTab[t & (SINTAB_SIZE - 1)] * 32) >> AMPLITUDE_BITS)), 2, vram);
+	}
+
+	if (!youWin && gateOpened) {
+		drawText(92, 172, "GATE OPEN", 94 + (((sinTab[(6*t) & (SINTAB_SIZE - 1)] * 3) >> AMPLITUDE_BITS)), 1, vram);
 	}
 }
 
