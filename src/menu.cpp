@@ -63,6 +63,7 @@ static Vec3 titlePatankPos[PATANK_LETTERS_NUM];
 static bool cameFromGame = true;	// what a hack I am bored
 static bool menuFinallyOn = false;
 
+static int accelerateIntro = 256;
 
 typedef struct Star
 {
@@ -79,23 +80,31 @@ static void inputMenu()
 	static bool leftPressed = false;
 	static bool rightPressed = false;
 	static bool escapePressed = false;
+	static bool firePressed = false;
+	static bool startPressed = false;
 
-	if (buttonsHeld.up & !upPressed) {
-		if (menuSelect > 0) menuSelect = 0;
-	}
-	if (buttonsHeld.down & !downPressed) {
-		if (menuSelect < 1) menuSelect = 1;
-	}	
-	if (buttonsHeld.left & !leftPressed) {
-	}
-	if (buttonsHeld.right & !rightPressed) {
-	}
+	if (menuFinallyOn) {
+		if (buttonsHeld.up & !upPressed) {
+			if (menuSelect > 0) menuSelect = 0;
+		}
+		if (buttonsHeld.down & !downPressed) {
+			if (menuSelect < 1) menuSelect = 1;
+		}	
+		if (buttonsHeld.left & !leftPressed) {
+		}
+		if (buttonsHeld.right & !rightPressed) {
+		}
 
-	if (buttonsHeld.fire || buttonsHeld.start) {
-		if (menuSelect==0) {
-			setIsInGame(true);
-		} else {
-			setGameQuit(true);
+		if ((buttonsHeld.fire & !firePressed) || (buttonsHeld.start & !startPressed)) {
+			if (menuSelect==0) {
+				setIsInGame(true);
+			} else {
+				setGameQuit(true);
+			}
+		}
+	} else {
+		if ((buttonsHeld.fire & !firePressed) || (buttonsHeld.start & !startPressed) || buttonsHeld.escape) {
+			if (accelerateIntro==256) accelerateIntro = 257;
 		}
 	}
 
@@ -104,6 +113,8 @@ static void inputMenu()
 	leftPressed = buttonsHeld.left;
 	rightPressed = buttonsHeld.right;
 	escapePressed = buttonsHeld.escape;
+	firePressed = buttonsHeld.fire;
+	startPressed = buttonsHeld.start;
 }
 
 static void updateStars(Screen *screen, int t)
@@ -142,7 +153,7 @@ static Vec3 interpolateVec(Vec3 &src, Vec3 &dst, int dt)
 	return v;
 }
 
-static void update3D(Screen *screen, int t, int dt)
+static void update3D(Screen *screen, int t, int timeFromStart)
 {
 	/*Mesh *ms = objMesh[OBJ_ROMBUS_RING];
 
@@ -164,12 +175,12 @@ static void update3D(Screen *screen, int t, int dt)
 	for (int i=0; i<ASTRO_LETTERS_NUM; ++i) {
 		Mesh *ms = objMesh[titleAstroMeshIndex[i]];
 
-		int ddt = dt - i * 384 - 2048 - 512;
-		if (ddt > 0) {
+		int dt = timeFromStart - i * 384 - 2048 - 512;
+		if (dt > 0) {
 			dstRot.z = (192 * sinTab[(t + 64*i) & (SINTAB_SIZE - 1)]) >> AMPLITUDE_BITS;
 
-			ms->pos = interpolateVec(farPos, titleAstroPos[i], ddt);
-			ms->rot = interpolateVec(farRot, dstRot, ddt);
+			ms->pos = interpolateVec(farPos, titleAstroPos[i], dt);
+			ms->rot = interpolateVec(farRot, dstRot, dt);
 
 			renderMesh(ms, screen);
 		}
@@ -178,17 +189,17 @@ static void update3D(Screen *screen, int t, int dt)
 	for (int i=0; i<PATANK_LETTERS_NUM; ++i) {
 		Mesh *ms = objMesh[titlePatankMeshIndex[i]];
 
-		int ddt = dt - i * 384 - (1 << TITLE_INTERP_BITS) - 2048 - 768;
-		if (ddt > 0) {
+		int dt = timeFromStart - i * 384 - (1 << TITLE_INTERP_BITS) - 2048 - 768;
+		if (dt > 0) {
 			dstRot.z = (224 * sinTab[(t + 96*i) & (SINTAB_SIZE - 1)]) >> AMPLITUDE_BITS;
 
-			ms->pos = interpolateVec(farPos, titlePatankPos[i], ddt);
-			ms->rot = interpolateVec(farRot, dstRot, ddt);
+			ms->pos = interpolateVec(farPos, titlePatankPos[i], dt);
+			ms->rot = interpolateVec(farRot, dstRot, dt);
 
 			renderMesh(ms, screen);
 		}
 
-		if (!menuFinallyOn && (i==PATANK_LETTERS_NUM-1 && ddt >= (1 << TITLE_INTERP_BITS))) {
+		if (!menuFinallyOn && (i==PATANK_LETTERS_NUM-1 && dt >= (1 << TITLE_INTERP_BITS))) {
 			menuFinallyOn = true;
 		}
 	}
@@ -254,14 +265,14 @@ void menuRun(Screen *screen, int t)
 {
 	static int tStart = t;
 
-	int dt = t - tStart;
-
 	updateStars(screen, t);
 
-	update3D(screen, t, dt);
+	update3D(screen, t, (accelerateIntro * (t - tStart)) >> 8);
+	if (!menuFinallyOn && accelerateIntro > 256) accelerateIntro+=16;
+
+	inputMenu();
 
 	if (menuFinallyOn) {
 		renderMenu(screen);
-		inputMenu();
 	}
 }
