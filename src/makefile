@@ -1,5 +1,5 @@
 obj = main.obj game.obj menu.obj fonts.obj video.obj timer.obj input.obj sound.obj soundbpr.obj musplay.obj tinyfont.obj mathutil.obj gfxtools.obj engine.obj r_line.obj r_poly.obj poly.obj draw.obj mesh.obj meshdata.obj tile_3d.obj map1.obj
-bin = astropat.exe
+bin = demo.exe
 
 AS = nasm
 CPP = wpp386
