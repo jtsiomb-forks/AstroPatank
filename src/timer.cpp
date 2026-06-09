@@ -37,11 +37,6 @@ static int nFrames = 0;
 
 static uint32 *my_clock = (uint32*)0x046C;
 
-void timerClearInterrupt()
-{
-	outp(0x20,0x20);
-}
-
 static uint32 timeValue = 0;
 static int32 nextOldTimer = 0;
 static uint32 timerInitCounter = 0;
@@ -65,19 +60,16 @@ static void INTERRUPT newTimerInterrupt()
 	// Moved beeper updateSound call here from per frame, to make sound from beeper play the same even if fps is low (should have done with physics too but I would need to decouple them)
 	if (!(timeValue & 31))
 		updateSound();
-
+#ifndef __DJGPP__
 	nextOldTimer -= 10;
 	if(nextOldTimer <= 0) {
-		nextOldTimer += 182;	// WHAT?
-		#ifdef __DJGPP__
-			_go32_dpmi_chain_protected_mode_interrupt_vector(TIMER_INTERRUPT, &oldTimerHandler);
-		#else
-			oldDosTimerInterrupt();
-		#endif
+		nextOldTimer += 182;
+		oldDosTimerInterrupt();
 	} else {
 		// Make sure we still execute the "HEY I'M DONE WITH THIS INTERRUPT" signal.
-		timerClearInterrupt();
+		outp(0x20,0x20);
 	}
+#endif
 }
 
 static void timerInterruptStart()
@@ -96,7 +88,7 @@ static void timerInterruptStart()
 		newTimerHandler.pm_offset   = (unsigned long)newTimerInterrupt;
 		newTimerHandler.pm_selector = _go32_my_cs();
 
-		_go32_dpmi_set_protected_mode_interrupt_vector(TIMER_INTERRUPT, &newTimerHandler);
+		_go32_dpmi_chain_protected_mode_interrupt_vector(TIMER_INTERRUPT, &newTimerHandler);
 	#else
 		oldDosTimerInterrupt = _dos_getvect(TIMER_INTERRUPT);
 		_dos_setvect(TIMER_INTERRUPT, newTimerInterrupt);
@@ -127,7 +119,7 @@ static void timerInterruptStart()
 
 	timerInterruptInit = true;
 }
-//132,333
+
 static void timerInterruptEnd()
 {
 	if (!timerInterruptInit) return;
