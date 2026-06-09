@@ -24,16 +24,8 @@ static int nFrames = 0;
 #define INTERRUPT __interrupt __far
 #define TIMER_INTERRUPT 0x08
 
-#ifdef SOUND_ON
-	#define YET_ANOTHER_HACK
-#endif
-
 // hack for player
-#ifdef YET_ANOTHER_HACK
-	#define OOF 2.6
-#else
-	#define OOF 1
-#endif
+#define OOF 2.6
 
 static uint32 *my_clock = (uint32*)0x046C;
 
@@ -149,17 +141,7 @@ static void timerInterruptEnd()
 
 uint32 getTime()
 {
-	#ifndef SOUND_ON
-		//return (uint32)timeValue;
-		return (uint32)(*my_clock * (1000.0f / 18.2f));
-	#else
-		#ifdef YET_ANOTHER_HACK
-			return (uint32)(timeValue / OOF);
-		#else
-			//return getMusTicks();	// as I connected MUSplay and it takes away the timer interrupt (and alternatives like chaining it failed or I did it badly), I return this instead.
-			return (uint32)(*my_clock * (1000.0f / 18.2f));
-		#endif
-	#endif
+	return (uint32)(timeValue / OOF);
 }
 
 void drawFps(Video *video)
@@ -180,14 +162,10 @@ void drawFps(Video *video)
 
 void initTimer()
 {
-	#ifdef YET_ANOTHER_HACK
-		timerInterruptStart();	// Because the MUS player captures the timer interrupt, I won't call this if SOUND is enabled
-	#endif
+	timerInterruptStart();	// Because the MUS player captures the timer interrupt, I won't call this if SOUND is enabled
 }
 
 void deinitTimer()
 {
-	#ifdef YET_ANOTHER_HACK
-		timerInterruptEnd();
-	#endif
+	timerInterruptEnd();
 }
