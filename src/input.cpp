@@ -156,7 +156,7 @@ static void INTERRUPT newKeyboardInterrupt()
 {
 	keyCommands();
 
-	outp(PIC1_CMD_PORT, OCW2_EOI);	// send end-of-interrupt
+	//outp(PIC1_CMD_PORT, OCW2_EOI);	// send end-of-interrupt
 }
 
 void initKeyboard()
@@ -169,7 +169,7 @@ void initKeyboard()
 		newKeyboardHandler.pm_offset   = (unsigned long)newKeyboardInterrupt;
 		newKeyboardHandler.pm_selector = _go32_my_cs();
 
-		_go32_dpmi_set_protected_mode_interrupt_vector(KEYBOARD_INTERRUPT, &newKeyboardHandler);
+		_go32_dpmi_chain_protected_mode_interrupt_vector(KEYBOARD_INTERRUPT, &newKeyboardHandler);
 	#else
 		oldKeyboardInterrupt = _dos_getvect(KEYBOARD_INTERRUPT);
 		_dos_setvect(KEYBOARD_INTERRUPT, newKeyboardInterrupt);

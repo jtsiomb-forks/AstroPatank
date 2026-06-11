@@ -53,7 +53,7 @@ static void initSystem()
 	#endif
 
 	initTimer();
-	//initKeyboard();
+	initKeyboard();
 
 	initVideoModeInfo();
 
@@ -130,7 +130,6 @@ int main(int argc, char **argv)
 	#endif
 	
 	while(!isGameQuit()) {
-	//for (int i=0; i<10000; ++i) {
 		screen.data = getRenderBuffer(video);
 		gameRun(&screen, getTime());
 		/*if (buttonsHeld.select)*/ drawFps(video);
@@ -138,7 +137,7 @@ int main(int argc, char **argv)
 	}
 
 	deinitTimer();
-	//deinitKeyboard();
+	deinitKeyboard();
 
 	#ifdef SOUND_ON
 		shutdownMusPlay();
