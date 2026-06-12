@@ -25,11 +25,14 @@ static int nFrames = 0;
 #define INTERRUPT __interrupt __far
 #define TIMER_INTERRUPT 0x08
 
+#define TIMER_HZ 140
+
 // hack for player
-#define OOF 2.6
+//#define OOF 1
 
 static uint32 timeValue = 0;
 static int32 nextOldTimer = 0;
+static int32 nextSoundTimer = 0;
 static uint32 timerInitCounter = 0;
 static bool timerInterruptInit = false;
 
@@ -49,11 +52,13 @@ static void INTERRUPT newTimerInterrupt()
 	timeValue++;
 
 	// Moved beeper updateSound call here from per frame, to make sound from beeper play the same even if fps is low (should have done with physics too but I would need to decouple them)
-	if (!(timeValue & 31)) {
+	nextSoundTimer++;
+	if (nextSoundTimer==2) {
+		nextSoundTimer = 0;
 		updateSound();
 	}
 
-#ifndef __DJGPP__
+/*#ifndef __DJGPP__
 	nextOldTimer -= 10;
 	if(nextOldTimer <= 0) {
 		nextOldTimer += 182;
@@ -61,9 +66,9 @@ static void INTERRUPT newTimerInterrupt()
 	} else {
 		outp(0x20,0x20);
 	}
-#else
+#else*/
 		outp(0x20,0x20);
-#endif
+//#endif
 }
 
 static void timerInterruptStart()
@@ -73,7 +78,7 @@ static void timerInterruptStart()
 	// The clock we're dealing with here runs at 1.193182mhz, so we
 	// just divide 1.193182 by the number of triggers we want per
 	// second to get our divisor.
-	uint32 c = 1193181 / (uint32)(1000 * OOF);
+	uint32 c = 1193181 / TIMER_HZ;
 
 	// Swap out interrupt handlers.
 	#ifdef __DJGPP__
@@ -146,7 +151,7 @@ static void timerInterruptEnd()
 uint32 getTime()
 {
 	//return (uint32)(*my_clock * (1000.0f / 18.2f));
-	return (uint32)(timeValue / OOF);
+	return (uint32)(timeValue * (1000 / TIMER_HZ));
 }
 
 void drawFps(Video *video)
@@ -167,7 +172,7 @@ void drawFps(Video *video)
 
 void initTimer()
 {
-	timerInterruptStart();	// Because the MUS player captures the timer interrupt, I won't call this if SOUND is enabled
+	timerInterruptStart();
 }
 
 void deinitTimer()
