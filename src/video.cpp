@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <dos.h>
 
 #include "mathutil.h"
 #include "main.h"

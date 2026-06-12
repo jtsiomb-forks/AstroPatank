@@ -1,74 +1,46 @@
 #include "soundbpr.h"
 
+#ifdef __DJGPP__
+	#include <pc.h>
+#else
+	#include <conio.h>
+#endif
+
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-static Sound sound[SOUNDS_NUM];
+static Sound soundFx[SOUNDS_NUM];
 
 static void startSound(uint8 freq1, uint8 freq2)
 {
-	#ifdef __DJGPP__
-		/*__asm__ __volatile__ (
-			"movb %b0, %%al\n\t"
-			"movb %b1, %%ah"
-			:
-			: "b" (freq1),
-			  "b" (freq2)
-			: "eax"
-		);*/
-	#else
-		_asm
-		{
-			mov al,0b6h
-			out 43h,al
-			mov al,freq1
-			out 42h,al
-			mov al,freq2
-			out 42h,al
+	outp(0x43,0x0b6);
+	outp(0x42,freq1);
+	outp(0x42,freq2);
 
-			in al,61h
-			or al,3
-			out 61h,al
-		}
-	#endif
+	outp(0x61, inp(0x61) | 3);
 }
 
 static void endSound()
 {
-	#ifdef __DJGPP__
-		__asm__ __volatile__ (
-			"inb $0x61, %%al\n\t"
-			"andb $0x0fc, %%al\n\t"
-			"outb %%al, $0x61"
-			:
-			:
-			: "eax", "memory"
-		);
-	#else
-		_asm
-		{
-			in al,61h
-			and al,0fch
-			out 61h,al
-		}
-	#endif
+	outp(0x61,inp(0x61) & 0x0fc);
 }
 
 void playSound(int index)
 {
 	if (index >= SOUNDS_NUM) return;
 
-	sound[index].t = sound[index].duration;
+	soundFx[index].t = soundFx[index].duration;
 }
 
 void initSoundBpr()
 {
-	memset(sound, 0, SOUNDS_NUM * sizeof(Sound));
+	memset(soundFx, 0, SOUNDS_NUM * sizeof(Sound));
 }
 
 void setupSound(uint8 duration, uint16 mul, uint16 mod, int index)
 {
-	Sound *snd = &sound[index];
+	Sound *snd = &soundFx[index];
 
 	snd->t = 0;
 	snd->duration = duration;
@@ -84,7 +56,7 @@ void updateSound()
 {
 	bool soundsStillPlaying = false;
 	for (int i=0; i<SOUNDS_NUM; ++i) {
-		Sound *snd = &sound[i];
+		Sound *snd = &soundFx[i];
 		if (snd->t > 0) {
 			uint16 freq = snd->freq[snd->duration - snd->t - 1];
 			startSound(freq & 255, freq >> 8);
