@@ -59,13 +59,14 @@ static void INTERRUPT newTimerInterrupt()
 	}
 
 #ifndef __DJGPP__
-	nextOldTimer -= 10;
+	/*nextOldTimer -= 10;
 	if(nextOldTimer <= 0) {
 		nextOldTimer += 182;
 		oldDosTimerInterrupt();
 	} else {
 		outp(0x20,0x20);
-	}
+	}*/
+	oldDosTimerInterrupt();
 #else
 		outp(0x20,0x20);
 #endif

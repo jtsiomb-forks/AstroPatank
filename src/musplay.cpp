@@ -111,11 +111,12 @@ char   *musname[MUS_NUM] = { "astropai.mus", "astropa.mus" };
 char   *userbankname = NULL;
 uint	help = 0;
 //char   *execCmd = NULL;
-#ifdef __386__
-uint	timer = TIMER_CNT140;
-#else
-uint	timer = TIMER_RTC128;
-#endif /*  __386__ */
+//#ifdef __386__
+//uint	timer = TIMER_CNT140;
+//#else
+//uint	timer = TIMER_RTC128;
+//#endif /*  __386__ */
+uint timer = TIMER_CNT140;
 
 uint	loopCount = -1;
 uint	singlevoice = 0;
