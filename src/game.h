@@ -4,7 +4,7 @@
 #include "types.h"
 
 #ifndef __DJGPP__
-	#define SOUND_ON
+	//#define SOUND_ON
 #endif
 
 #define SCR_W 320

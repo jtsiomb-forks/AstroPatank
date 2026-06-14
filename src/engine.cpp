@@ -258,7 +258,9 @@ static void updateFaceOrderPolysVis(Mesh *ms)
 
 static void renderMeshPolys(Mesh *ms, uint8 *vram)
 {
-	updateFaceOrderPolysVis(ms);
+	#ifdef ANTIALIASING_POLY
+		updateFaceOrderPolysVis(ms);
+	#endif
 
 	// clear all entries from previously
 	for (int i=zBucketIndexMin; i<=zBucketIndexMax; ++i) {
@@ -279,12 +281,12 @@ static void renderMeshPolys(Mesh *ms, uint8 *vram)
 			ScreenPoint *p1 = &scrPoints[src[1]];
 			ScreenPoint *p2 = &scrPoints[src[2]];
 	
-			if (scrPolyVis[i] != 0) {
-				const int p0z = scrPoints[src[0]].z;
-				const int p1z = scrPoints[src[1]].z;
-				const int p2z = scrPoints[src[2]].z;
-
-				int avgZ = (p0z + p1z + 2 * p2z) >> 2; // adding p2 twice as hack, enough for crude innacurate z average
+			#ifdef ANTIALIASING_POLY
+				if (scrPolyVis[i] != 0) {
+			#else
+				if ((p0->x - p1->x) * (p2->y - p1->y) - (p2->x - p1->x) * (p0->y - p1->y) > 0) {
+			#endif
+				int avgZ = (p0->z + p1->z + 2 * p2->z) >> 2; // adding p2 twice as hack, enough for crude innacurate z average
 
 				if (avgZ < 0) avgZ = 0;
 
@@ -389,16 +391,6 @@ static void renderMeshDots(Mesh *ms, uint8 *vram)
 		}
 		++src;
 	} while(--count != 0);
-}
-
-void renderMeshHack(Mesh *ms, Screen *screen, bool onlyTransform)
-{
-	if (onlyTransform) {
-		transformGridMesh(ms);
-	} else {
-		translateAndProjectMesh(ms);
-		renderMeshPolys(ms, (uint8*)screen->data);
-	}
 }
 
 void renderMesh(Mesh *ms, Screen *screen)

@@ -326,6 +326,9 @@ void drawPoly(ScreenPoint *p[], int edgesNum, uint8 color, uint8 *vram)
 
 void drawQuad(ScreenPoint2D *p[], uint8 color, uint8 *vram)
 {
+	//if ((p[0]->x - p[1]->x) * (p[2]->y - p[1]->y) - (p[2]->x - p[1]->x) * (p[0]->y - p[1]->y) <= 0) return;
+	//Not needed as in the tile top down checks depending on the orientation we don't send the quad
+
 	yScanlineMin = SCR_H;
 	yScanlineMax = -1;
 

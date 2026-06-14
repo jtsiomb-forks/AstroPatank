@@ -580,11 +580,11 @@ static void updateSpawning()
 static void updateGameplay(int t, int dt)
 {
 	updateSpawning();
-	updateNarcs();
-	updateItems();
-	updateLasers();
-	updateParticles();
-	updatePlayerHit();
+	//updateNarcs();
+	//updateItems();
+	//updateLasers();
+	//updateParticles();
+	//updatePlayerHit();
 }
 
 static void spawnLaser(Vec3 &pos, Vec3 &rot, Vec3 &vel)

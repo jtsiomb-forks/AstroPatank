@@ -59,6 +59,4 @@ void renderMesh(Mesh *ms, Screen *screen);
 
 void renderAntialiasedDot(int sx, int sy, int colorBase, int shadeAlpha, uint8 *vram);
 
-void renderMeshHack(Mesh *ms, Screen *screen, bool onlyTransform);	// hack to only transform same repeating cube grid points, so that later for each cube we use the same transformed points but only trans/project
-
 #endif
