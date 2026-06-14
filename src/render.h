@@ -7,7 +7,11 @@
 #include "vector.h"
 
 #define ANTIALIASING
+
 //#define ANTIALIASING_POLY
+#ifndef ANTIALIASING_POLY
+	#define FILL_SCANLINES_ASM
+#endif
 
 #define FP_RAST 8
 #define FP_AND ((1 << FP_RAST) - 1)

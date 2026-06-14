@@ -19,9 +19,6 @@ typedef struct Scanline
 	uint16 a0,a1;
 } Scanline;
 
-
-#define FILL_SCANLINES_ASM
-
 extern "C" {
 	void fillScanlinesAsm(uint8 color, uint8 *vram);
 	Scanline scanline[SCR_H];

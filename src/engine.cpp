@@ -238,14 +238,18 @@ static void updateFaceOrderPolysVis(Mesh *ms)
 			ScreenPoint *p1 = &scrPoints[src[1]];
 			ScreenPoint *p2 = &scrPoints[src[2]];
 
-			int x0 = p0->x >> SCR_BITS;
+			// Might have overflown in the past but I might have reduced SCR_BITS anyway.
+			/*int x0 = p0->x >> SCR_BITS;
 			int y0 = p0->y >> SCR_BITS;
 			int x1 = p1->x >> SCR_BITS;
 			int y1 = p1->y >> SCR_BITS;
 			int x2 = p2->x >> SCR_BITS;
 			int y2 = p2->y >> SCR_BITS;
 
-			int faceOrder = (x0 - x1) * (y2 - y1) - (x2 - x1) * (y0 - y1);
+			int faceOrder = (x0 - x1) * (y2 - y1) - (x2 - x1) * (y0 - y1);*/
+
+			// If it's fine with small objects then keep this instead, no need to shift down bits
+			int faceOrder = (p0->x - p1->x) * (p2->y - p1->y) - (p2->x - p1->x) * (p0->y - p1->y);
 			if (faceOrder >= 0) {
 				polyIsVis = 1;
 			}
