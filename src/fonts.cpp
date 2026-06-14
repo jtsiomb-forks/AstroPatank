@@ -23,90 +23,113 @@ static uint8 bitfonts[] = {0,0,0,0,0,0,0,0,4,12,8,24,16,0,32,0,10,18,20,0,0,0,0,
 60,0,126,24,16,16,48,32,32,0,17,49,35,98,70,68,56,0,66,102,36,44,40,56,48,0,33,97,67,66,86,84,
 40,0,67,36,24,28,36,66,66,0,34,18,22,12,12,8,24,0,31,2,4,4,8,24,62,0};
 
-#define FONT_SIZE 8
+#define NUM_FONTS 59
+
+#define FONT_W 8
+#define FONT_H 8
+#define FONT_SIZE (FONT_W * FONT_H)
 
 
-static uint8 fonts[59*FONT_SIZE*FONT_SIZE];
+static uint8 fonts[NUM_FONTS * FONT_SIZE];
 
 static void drawFont(int xp, int yp, int ch, uint8 colOffset, uint8 *vram)
 {
-    if (xp <0 || xp > SCR_W - FONT_SIZE) return;
+	if (xp <0 || xp > SCR_W - FONT_W) return;
 
+	uint8 *src = &fonts[ch * 64];
     uint8 *dst = vram + xp + yp * SCR_W;
-    for (int y=0; y<FONT_SIZE; y++)
-    {
-        int yc = yp + y;
-        if ((yc>=0) && (yc<SCR_H))
-        {
-            int yi = y << 3;
-            for (int x=0; x<FONT_SIZE; x++)
-            {
-                uint8 c = fonts[(ch << 6) + yi + x];
-                if (c!=0) *dst = c + colOffset;
-                dst++;
-            }
-            dst-=FONT_SIZE;
-        }
+    for (int y=0; y<FONT_H; y++) {
+		for (int x=0; x<FONT_W; x++) {
+			uint8 c = src[x];
+			if (c!=0) dst[x] = c + colOffset;
+		}
+		src+=FONT_W;
         dst+=SCR_W;
     }
 }
 
-static void drawFontScale(int xp, int yp, int ch, uint8 colOffset, int scaleBits, uint8 *vram)
+static void drawFontScaleX2(int xp, int yp, int ch, uint8 colOffset, uint8 *vram)
 {
-	int scale = 1 << scaleBits;
+    if (xp <0 || xp > SCR_W - 2 * FONT_W) return;
 
-    if (xp <0 || xp > SCR_W - FONT_SIZE * scale) return;
+	uint8 *src = &fonts[ch * 64];
+	uint16 *dst16 = (uint16*)(vram + (xp & ~1) + yp * SCR_W);
+    for (int y=0; y<FONT_H; y++) {
+		for (int x=0; x<FONT_W; x++) {
+			uint8 c = *src++;
+			if (c!=0) {
+				c += colOffset;
+				uint16 c16 = (c << 8) | c;
+				dst16[x] = c16;
+				dst16[x+SCR_W/2] = c16;
+			}
+		}
+        dst16+=SCR_W;
+    }
+}
 
-    uint8 *dst = vram + xp + yp * SCR_W;
+static void drawFontScaleX4(int xp, int yp, int ch, uint8 colOffset, uint8 *vram)
+{
+    if (xp <0 || xp > SCR_W - 4 * FONT_W) return;
 
-	int count = FONT_SIZE * scale;
-    for (int y=0; y<count; y++)
-    {
-        int yc = yp + y;
-        if ((yc>=0) && (yc<SCR_H))
-        {
-            int yi = (y >> scaleBits) << 3;
-            for (int x=0; x<count; x++)
-            {
-                uint8 c = fonts[(ch << 6) + yi + (x >> scaleBits)];
-                if (c!=0) *dst = c + colOffset;
-                dst++;
-            }
-            dst-=count;
-        }
-        dst+=SCR_W;
+	uint8 *src = &fonts[ch * 64];
+	uint32 *dst32 = (uint32*)(vram + (xp & ~3) + yp * SCR_W);
+    for (int y=0; y<FONT_H; y++) {
+		for (int x=0; x<FONT_W; x++) {
+			uint8 c = *src++;
+			if (c!=0) {
+				c += colOffset;
+				uint32 c32 = (c << 24) | (c << 16) | (c << 8) | c;
+				dst32[x] = c32;
+				dst32[x+SCR_W/4] = c32;
+				dst32[x+SCR_W/2] = c32;
+				dst32[x+3*SCR_W/4] = c32;
+			}
+		}
+        dst32+=SCR_W;
     }
 }
 
 void drawText(int xp, int yp, const char *text, uint8 colOffset, int scaleBits, uint8 *vram)
 {	
+	if (yp < 0 || yp > SCR_H - scaleBits * 8) return;
+
 	while (char c = *text++) {
         if (c>96 && c<123) {
 			c-=32;
 		}
 
    		if (c>31 && c<92) {
-   		    if (scaleBits==0) {
-                drawFont(xp, yp, c - 32, colOffset, vram);
-			} else {
-                drawFontScale(xp, yp, c - 32, colOffset, scaleBits, vram);
+			switch(scaleBits) {
+				default:
+				case 0:
+					drawFont(xp, yp, c - 32, colOffset, vram);
+				break;
+
+				case 1:
+					drawFontScaleX2(xp, yp, c - 32, colOffset, vram);
+				break;
+
+				case 2:
+					drawFontScaleX4(xp, yp, c - 32, colOffset, vram);
+				break;
 			}
    		}
 
-   		xp+=(FONT_SIZE << scaleBits);
-   		if (xp>SCR_W -(FONT_SIZE << scaleBits) -1) break;
+   		xp+=(FONT_W << scaleBits);
+   		if (xp>SCR_W -(FONT_W << scaleBits) -1) break;
 	}
 }
 
 void fontsInit()
 {
     int i = 0;
-	for (int n=0; n<59; n++) {
-		for (int y=0; y<FONT_SIZE; y++) {
+	for (int n=0; n<NUM_FONTS; n++) {
+		for (int y=0; y<FONT_H; y++) {
 			int c = bitfonts[i++];
-			for (int x=0; x<FONT_SIZE; x++) {
-				uint8 shade = y + FONT_SIZE;
-				fonts[(n << 6) + x + y * FONT_SIZE] = ((c >>  (7 - x)) & 1) * shade;
+			for (int x=0; x<FONT_W; x++) {
+				uint8 shade = y + FONT_H;
+				fonts[(n << 6) + x + y * FONT_W] = ((c >>  (7 - x)) & 1) * shade;
 			}
 		}
 	}
