@@ -79,7 +79,7 @@ static void timerInterruptStart()
 	// The clock we're dealing with here runs at 1.193182mhz, so we
 	// just divide 1.193182 by the number of triggers we want per
 	// second to get our divisor.
-	uint32 c = 1193181 / TIMER_HZ;
+	uint32 c = 1193182 / TIMER_HZ;
 
 	// Swap out interrupt handlers.
 	#ifdef __DJGPP__

@@ -1192,7 +1192,7 @@ void gameRun(Screen *screen, int t)
 	} else {
 		menuRun(screen, t);
 	}
-
+	
 #ifdef SHOW_PALETTE
 	drawPalette((uint8*)screen->data);
 #endif
