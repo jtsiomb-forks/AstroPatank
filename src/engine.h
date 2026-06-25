@@ -33,6 +33,11 @@
 #define AMPLITUDE_BITS 12
 #define SINTAB_AMPLITUDE (1 << AMPLITUDE_BITS)
 
+enum {
+	MAT_XYZ,
+	MAT_XY,
+	MAT_COUNT
+};
 
 enum {
 	RENDER_DOTS,
@@ -55,7 +60,7 @@ typedef struct ScreenPoint
 extern int sinTab[SINTAB_SIZE];
 
 void initEngine();
-void renderMesh(Mesh *ms, Screen *screen);
+void renderMesh(Mesh *ms, Screen *screen, int rotMatType);
 
 void renderAntialiasedDot(int sx, int sy, int colorBase, int shadeAlpha, uint8 *vram);
 

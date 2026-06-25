@@ -152,19 +152,6 @@ static Vec3 interpolateVec(Vec3 &src, Vec3 &dst, int dt)
 
 static void update3D(Screen *screen, int t, int timeFromStart)
 {
-	/*Mesh *ms = objMesh[OBJ_ROMBUS_RING];
-
-	t >>= 1;
-	ms->rot.x = t;
-	ms->rot.y = 2*t;
-	ms->rot.z = 3*t;
-
-	ms->pos.x = 0;
-	ms->pos.y = 512;
-	ms->pos.z = 4096;
-
-	renderMesh(ms, screen);*/
-
 	Vec3 farPos = Vec3(0,0,32768);
 	Vec3 farRot = Vec3(4096, 8192, 6144);
 	Vec3 dstRot;
@@ -179,7 +166,7 @@ static void update3D(Screen *screen, int t, int timeFromStart)
 			ms->pos = interpolateVec(farPos, titleAstroPos[i], dt);
 			ms->rot = interpolateVec(farRot, dstRot, dt);
 
-			renderMesh(ms, screen);
+			renderMesh(ms, screen, MAT_XYZ);
 		}
 	}
 
@@ -193,7 +180,7 @@ static void update3D(Screen *screen, int t, int timeFromStart)
 			ms->pos = interpolateVec(farPos, titlePatankPos[i], dt);
 			ms->rot = interpolateVec(farRot, dstRot, dt);
 
-			renderMesh(ms, screen);
+			renderMesh(ms, screen, MAT_XYZ);
 		}
 
 		if (!menuFinallyOn && (i==PATANK_LETTERS_NUM-1 && dt >= (1 << TITLE_INTERP_BITS))) {

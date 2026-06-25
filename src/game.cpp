@@ -732,7 +732,7 @@ static void renderObject(int i, Screen *screen)
 	ms->gridScaleY = gt->spawnMeshScale.y;
 	ms->gridScaleZ = gt->spawnMeshScale.z;
 
-	renderMesh(ms, screen);
+	renderMesh(ms, screen, MAT_XY);
 
 	ms->gridScaleX = backX;
 	ms->gridScaleY = backY;

@@ -43,7 +43,10 @@ typedef struct ZBucket
 ZBucket zBucket[Z_BUCKETS_NUM];
 static int zBucketIndexMin, zBucketIndexMax;
 
-static void calcRotMatrix(Vec3 *rot)
+static void(*calcRotMatrix)(Vec3*);
+
+
+static void calcRotMatrixXYZ(Vec3 *rot)
 {
 	const int cosxr = sinTab[(rot->x + (SINTAB_SIZE / 4)) & (SINTAB_SIZE - 1)];
 	const int cosyr = sinTab[(rot->y + (SINTAB_SIZE / 4)) & (SINTAB_SIZE - 1)];
@@ -59,6 +62,24 @@ static void calcRotMatrix(Vec3 *rot)
 	rotMat[4] = ((cosxr * coszr) >> AMPLITUDE_BITS) + ((((sinxr * sinyr) >> AMPLITUDE_BITS) * sinzr) >> AMPLITUDE_BITS);
 	rotMat[5] = ((-sinxr * coszr) >> AMPLITUDE_BITS) + ((((cosxr * sinyr) >> AMPLITUDE_BITS) * sinzr) >> AMPLITUDE_BITS);
 	rotMat[6] = (-sinyr);
+	rotMat[7] = ((sinxr * cosyr) >> AMPLITUDE_BITS);
+	rotMat[8] = ((cosxr * cosyr) >> AMPLITUDE_BITS);
+}
+
+static void calcRotMatrixXY(Vec3 *rot)
+{
+	const int cosxr = sinTab[(rot->x + (SINTAB_SIZE / 4)) & (SINTAB_SIZE - 1)];
+	const int cosyr = sinTab[(rot->y + (SINTAB_SIZE / 4)) & (SINTAB_SIZE - 1)];
+	const int sinxr = sinTab[rot->x & (SINTAB_SIZE - 1)];
+	const int sinyr = sinTab[rot->y & (SINTAB_SIZE - 1)];
+
+	rotMat[0] = cosyr;
+	rotMat[1] = (sinxr * sinyr) >> AMPLITUDE_BITS;
+	rotMat[2] = (cosxr * sinyr) >> AMPLITUDE_BITS;
+	rotMat[3] = 0;
+	rotMat[4] = cosxr;
+	rotMat[5] = -sinxr;
+	rotMat[6] = -sinyr;
 	rotMat[7] = ((sinxr * cosyr) >> AMPLITUDE_BITS);
 	rotMat[8] = ((cosxr * cosyr) >> AMPLITUDE_BITS);
 }
@@ -383,9 +404,19 @@ static void renderMeshDots(Mesh *ms, uint8 *vram)
 	} while(--count != 0);
 }
 
-void renderMesh(Mesh *ms, Screen *screen)
+void renderMesh(Mesh *ms, Screen *screen, int rotMatType)
 {
 	uint8 *vram = (uint8*)screen->data;
+
+	switch(rotMatType) {
+		case MAT_XY:
+			calcRotMatrix = calcRotMatrixXY;
+			break;
+
+		case MAT_XYZ:
+		default:
+			calcRotMatrix = calcRotMatrixXYZ;
+	}
 
 	if (ms->gridPoints) {
 		transformGridMesh(ms);
@@ -421,4 +452,6 @@ void initEngine()
 
 	zBucketIndexMin = 0;
 	zBucketIndexMax = Z_BUCKETS_NUM;
+
+	calcRotMatrix = calcRotMatrixXYZ;
 }
