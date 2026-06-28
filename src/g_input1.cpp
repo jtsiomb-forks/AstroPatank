@@ -20,7 +20,7 @@ static int playerVelocityY = 0;
 
 static void diminishForce(int &force)
 {
-	int threshold = 2*MOVE_MAX;
+	int threshold = MOVE_MAX;
 
 	if (force < -threshold) {
 		force += threshold;

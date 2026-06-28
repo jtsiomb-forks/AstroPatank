@@ -97,6 +97,8 @@ static bool youWarp = false;
 static bool youWin = false;
 static int winZoom = 0;
 
+static int playerMoveType = INPUT_MOVE_CAR;
+
 PlayerHit playerHit = { false, 0, 0 };
 
 static GameThing thing[NUM_THINGS];
@@ -533,7 +535,7 @@ static void updateSpawning()
 						playerHit.justHit = false;
 						playerHit.damage = 0;
 						playerHit.warmUp = 0;
-						resetInput1();
+						resetInput[playerMoveType]();
 					} else {
 						lives = 0;
 						gt->alive = false;
@@ -935,7 +937,7 @@ static void restartGameIfEnded()
 	playerHit.justHit = false;
 	playerHit.damage = 0;
 	playerHit.warmUp = 0;
-	resetInput1();
+	resetInput[playerMoveType]();
 
 	initThings();
 }
@@ -1000,7 +1002,7 @@ static void updateGameInput(int dt)
 	GameThing *gt = &thing[PLAYER_THING_BASE];
 	if (!gt->alive || youWarp) return;
 
-	if (updateInputType1(gt, dt)) {
+	if (updateInputType[playerMoveType](gt, dt)) {
 		if (shield==0) damagePlayer(ENERGY_SCALER/2, MAX_HIT_BLINK/2);
 		playSound(SOUND_PLAYER_BOUNCE);
 	}
