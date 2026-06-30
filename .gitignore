@@ -1,5 +1,4 @@
-demo.exe
-demoj.exe
+*.exe
 *.o
 *.obj
 *.err
@@ -8,3 +7,4 @@ demoj.exe
 *.lk1
 std*.txt
 watcom
+*.swp
